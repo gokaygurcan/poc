@@ -7,6 +7,7 @@ import { createServer } from 'net';
 
 // node modules
 import { hexy } from 'hexy';
+import { lt } from 'semver';
 
 // ------------------------------ utilities
 
@@ -141,6 +142,7 @@ const compression = src => {
 
 // ------------------------------ variables
 
+const razor = process.env.RAZOR || false;
 const config = {
   port: 2593,
   servers: [
@@ -171,10 +173,26 @@ const config = {
       max_players: 100,
       timezone: 2
     }
-  ]
+  ],
+  startingLocations: [
+    { name: "Yew", area: "The Empath Abbey", position: { x: 633, y: 858, z: 0, map: 0 }, cliloc: 1075072 },
+    { name: "Minoc", area: "The Barnacle Tavern", position: { x: 2476, y: 413, z: 15, map: 0 }, cliloc: 1075073 },
+    { name: "Britain", area: "The Wayfarer's Inn", position: { x: 1602, y: 1591, z: 20, map: 0 }, cliloc: 1075074 },
+    { name: "Moonglow", area: "The Scholars Inn", position: { x: 4408, y: 1168, z: 0, map: 0 }, cliloc: 1075075 },
+    { name: "Trinsic", area: "The Traveller's Inn", position: { x: 1845, y: 2745, z: 0, map: 0 }, cliloc: 1075076 },
+    { name: "New Haven", area: "New Haven Bank", position: { x: 3667, y: 2625, z: 0, map: 0 }, cliloc: 1150168 },
+    { name: "Jhelom", area: "The Mercenary Inn", position: { x: 1374, y: 3826, z: 0, map: 0 }, cliloc: 1075078 },
+    { name: "Skara Brae", area: "The Falconers Inn", position: { x: 618, y: 2234, z: 0, map: 0 }, cliloc: 1075079 },
+    { name: "Vesper", area: "The Ironwood Inn", position: { x: 2771, y: 976, z: 0, map: 0 }, cliloc: 1075080 }
+  ],
+  charLimit: 5
 };
+const characters = [{
+  name: 'Hello World'
+}]; // empty :(
 const server = createServer();
 let response;
+let tmp;
 
 // ------------------------------ events
 
@@ -199,11 +217,13 @@ server.on('connection', socket => {
       socket.seed = seed;
       socket.version = { major, minor, revision, patch };
     } else {
-      data = decrypt(data, socket);
-      dump(data, 'client');
+      if (razor === false) {
+        data = decrypt(data, socket);
+        dump(data, 'client');
 
-      // decrypted cmd
-      cmd = data.readUInt8(0);
+        // decrypted cmd
+        cmd = data.readUInt8(0);
+      }
     }
 
     if (cmd === 0x73) {
@@ -214,47 +234,36 @@ server.on('connection', socket => {
       ]);
     } else if (cmd === 0x80) {
       // login request packet
-      let username = data
-        .slice(1, 31)
-        .toString('utf8')
-        .split('\0')[0];
-      let password = data
-        .slice(31, 61)
-        .toString('utf8')
-        .split('\0')[0];
+      let username = data.slice(1, 31).toString('utf8').split('\0')[0];
+      let password = data.slice(31, 61).toString('utf8').split('\0')[0];
       let nextLoginKey = data.readUInt8(61);
 
       if (username === 'username' && password === 'password') {
         let servers = config.servers.filter(server => server.active);
-        let tmp = [0xa8]; // game server list
+        let tmp_0xa8 = [0xa8]; // game server list
 
         let fixedLength = 1 + 2 + 1 + 2; // cmd + length + sysinfo + number of servers
         let dynamicLength = servers.length * (2 + 32 + 1 + 1 + 4); // index + name + percentage + timezone + ip
         let totalLength = fixedLength + dynamicLength;
-        let length = [totalLength & 0xff00, totalLength & 0xff];
-        tmp = tmp.concat(length); // length
-        tmp = tmp.concat([0x5d]); // system info
-        tmp = tmp.concat([servers.length & 0xff00, servers.length & 0xff]); // # of servers
+        let length_0x80 = [totalLength & 0xff00, totalLength & 0xff]; // writeUInt16BE ?
+        tmp_0xa8 = tmp_0xa8.concat(length_0x80); // length
+        tmp_0xa8 = tmp_0xa8.concat([0x5d]); // system info
+        tmp_0xa8 = tmp_0xa8.concat([servers.length & 0xff00, servers.length & 0xff]); // # of servers
 
         for (let i = 0; i < servers.length; ++i) {
           let server = servers[i];
 
-          tmp = tmp.concat([i & 0xff00, i & 0xff]); // server index (0-based)
+          tmp_0xa8 = tmp_0xa8.concat([i & 0xff00, i & 0xff]); // server index (0-based)
 
           let name = Buffer.alloc(32);
           name.write(server.name);
-          tmp = tmp.concat(name.toJSON().data); // server name
-          tmp = tmp.concat([0x01]); // percent full
-          tmp = tmp.concat([0x02]); // timezone
-          tmp = tmp.concat(
-            server.ip
-              .split('.')
-              .reverse()
-              .map(octet => parseInt(octet))
-          ); // server ip to ping
+          tmp_0xa8 = tmp_0xa8.concat(name.toJSON().data); // server name
+          tmp_0xa8 = tmp_0xa8.concat([0x01]); // percent full
+          tmp_0xa8 = tmp_0xa8.concat([0x02]); // timezone
+          tmp_0xa8 = tmp_0xa8.concat(server.ip.split('.').reverse().map(octet => parseInt(octet))); // server ip to ping
         }
 
-        response = Buffer.from(tmp);
+        response = Buffer.from(tmp_0xa8);
       } else {
         response = Buffer.from([
           0x82, // login rejected packet
@@ -262,8 +271,169 @@ server.on('connection', socket => {
         ]);
       }
     } else if (cmd === 0xa0) {
-      let index = data.readUInt16BE(0);
-      let server = config.servers[index - 1];
+      let index = data.readUInt16BE(1);
+      let server = config.servers.filter(server => server.active)[index];
+
+      let tmp_0xa0 = [0x8c]; // connect to game server
+      tmp_0xa0 = tmp_0xa0.concat(server.ip.split('.').map(octet => parseInt(octet) & 0xff)); // server ip    
+
+      let port = Buffer.alloc(2);
+      port.writeInt16BE(server.port);
+      tmp_0xa0 = tmp_0xa0.concat(port.toJSON().data);
+
+      // TODO: implement OTP kind of stuff.
+      // https://docs.mongodb.com/manual/tutorial/expire-data/
+      tmp_0xa0 = tmp_0xa0.concat([0x01, 0x02, 0x03, 0x04]);
+
+      response = Buffer.from(tmp_0xa0);
+    }
+    else if (cmd === 0x91) {
+      let key = data.readUInt32BE(1);
+      let cred = data.slice(5).toString('utf8').split('\0').filter(item => item !== '');
+      let username = cred[0];
+      let password = cred[1];
+
+      // TODO: proper auth check, this is game server from now on
+      if (username === 'username' && password === 'password') {
+        let tmp_0xb9 = [0xb9]; // enable locked client features
+    
+        let bitflag = 0x000000
+                    | 0x000001 // enable T2A features: chat, regions
+                    | 0x000002 // enable renaissance features
+                    | 0x000004 // enable third dawn features
+                    | 0x000008 // enable LBR features: skills, map
+                    | 0x000010 // enable AOS features: skills, map, spells, fightbook
+                 // | 0x000020 // 6th character slot
+                    | 0x000040 // enable SE features
+                    | 0x000080 // enable ML features: elven race, spells, skills
+                 // | 0x000100 // enable 8th age splash screen
+                 // | 0x000200 // enable 9th age splash screen
+                    | 0x000400 // enable 10th age
+                    | 0x000800 // enable increased housing and bank storage
+                 // | 0x001000 // 7th character slot
+                    | 0x002000 // enable KR faces
+                 // | 0x004000 // enable trial account
+                    | 0x008000 // enable live account
+                    | 0x010000 // enable SA features: gargoyle race, spells, skills
+                    | 0x020000 // enable HSA features
+                    | 0x040000 // enable Gothic housing tiles
+                    | 0x080000 // enable Rustic housing tiles
+                    | 0x100000 // enable Jungle housing tiles
+                    | 0x200000 // enabled Shadowguard housing tiles
+                    | 0x400000 // enable TOL features
+                    | 0x800000; // enable Endless Journey account
+
+        let tempBitFlag = Buffer.alloc(4);
+        tempBitFlag.writeUInt32BE(bitflag);
+        tmp_0xb9 = tmp_0xb9.concat(tempBitFlag.toJSON().data);
+
+        response = Buffer.from(tmp_0xb9);
+
+        dump(response, 'server');
+        socket.write(response);
+
+        let tmp_0xa9 = [0xa9]; // characters / starting locations
+
+        // >= 7.0.13.0
+        let newClient = false;
+        if (false) { 
+          // lt(`${socket.version.major}.${socket.version.minor}.${socket.version.revision}`, '7.0.13')) 
+          // TODO: re-read the version from socket
+          newClient = false;
+        }
+
+        let length_0xa9 = 1 + 2 
+                        + (1 + (config.charLimit * (30 + 30))) 
+                        + (1 + (config.startingLocations.length * (newClient ? (1 + 32 + 32 + 4 + 4 + 4 + 4 + 4 + 4) : (1 + 31 + 31))))
+                        + 4 + 2;
+
+        tmp_0xa9 = tmp_0xa9.concat([length_0xa9 & 0xff00, length_0xa9 & 0xff]); // writeUInt16BE ?
+        tmp_0xa9 = tmp_0xa9.concat(config.charLimit); // number of characters
+
+        for (let i = 0; i < config.charLimit; ++i) {
+            let tempBuff = Buffer.alloc(60);
+
+            if (i < characters.length) {
+                tempBuff.write(characters[i].name.substr(0, 30), 30);
+            }
+
+            tmp_0xa9 = tmp_0xa9.concat(tempBuff.toJSON().data);
+        }
+
+        tmp_0xa9 = tmp_0xa9.concat(config.startingLocations.length); // number of starting locations (cities)
+
+        let tempSize = newClient ? 32 : 31;
+        for (let i = 0; i < config.startingLocations.length; ++i) {
+          let startingLocation = config.startingLocations[i];
+
+          tmp_0xa9 = tmp_0xa9.concat(i); // locationIndex (0-based)
+
+          let tempLocationName = Buffer.alloc(tempSize);
+          tempLocationName.write(startingLocation.name, tempSize - startingLocation.name.length);
+          tmp_0xa9 = tmp_0xa9.concat(tempLocationName.toJSON().data);
+
+          let tempAreaName = Buffer.alloc(tempSize);
+          tempAreaName.write(startingLocation.area, tempSize - startingLocation.area.length);
+          tmp_0xa9 = tmp_0xa9.concat(tempAreaName.toJSON().data);
+
+          if (newClient === true) {
+            let tempPositionX = Buffer.alloc(4);
+            tempPositionX.writeUInt32BE(startingLocation.position.x);
+            tmp_0xa9 = tmp_0xa9.concat(tempPositionX.toJSON().data); // city x coordinate
+
+            let tempPositionY = Buffer.alloc(4);
+            tempPositionY.writeUInt32BE(startingLocation.position.y);
+            tmp_0xa9 = tmp_0xa9.concat(tempPositionY.toJSON().data); // city y coordinate
+
+            let tempPositionZ = Buffer.alloc(4);
+            tempPositionZ.writeUInt32BE(startingLocation.position.z);
+            tmp_0xa9 = tmp_0xa9.concat(tempPositionZ.toJSON().data); // city z coordinate
+
+            let tempPositionMap = Buffer.alloc(4);
+            tempPositionMap.writeUInt32BE(startingLocation.position.map);
+            tmp_0xa9 = tmp_0xa9.concat(tempPositionMap.toJSON().data); // city map / map id
+
+            let tempPositionCliloc = Buffer.alloc(4);
+            tempPositionCliloc.writeUInt32BE(startingLocation.cliloc);
+            tmp_0xa9 = tmp_0xa9.concat(tempPositionCliloc.toJSON().data); // cliloc description
+
+            tmp_0xa9 = tmp_0xa9.concat([0x00, 0x00, 0x00, 0x00]); // always 0
+          }
+        }
+
+        let flags = 0x00
+               // | 0x01    // unknown
+               // | 0x02    // send config/req logout (IGR?, overwrite configuration button?)
+               // | 0x04    // single character (siege - limit 1 character/account)
+                  | 0x08    // enable npcpopup/context menus
+               // | 0x10    // limit character slots?
+                  | 0x20    // enable common AOS features (tooltip thing/fight system book, but not AOS monsters/map/skills, necromancer/paladin classes)
+               // | 0x40    // 6th character slot
+                  | 0x80    // samurai and ninja classes
+                  | 0x100   // elven race
+                  | 0x200   // KR support flag1 ?
+               // | 0x400   // send UO3D client type (client will send 0xE1 packet)
+               // | 0x800   // unknown
+               // | 0x1000  // 7th character slot, only 2D client
+                  | 0x2000  // unknown (SA?)
+                  | 0x4000  // new movement packets 0xF0 -> 0xF2
+                  | 0x8000; // unlock new felucca areas 
+        let tempFlags = Buffer.alloc(4);
+        tempFlags.writeUInt32BE(flags);
+        tmp_0xa9 = tmp_0xa9.concat(tempFlags.toJSON().data);
+
+        tmp_0xa9 = tmp_0xa9.concat([0x00, 0x00]); // if SA Enchanced client, last character slot (for highlight)
+
+        response = Buffer.from(tmp_0xa9);
+      } else {
+        response = Buffer.from([
+          0x82, // login rejected packet
+          0x03 // your account credentials are invalid
+        ]);
+      }
+    }
+    else if (cmd === 0x00) {
+      // ?
     }
 
     if (response) {

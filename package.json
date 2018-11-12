@@ -4,10 +4,12 @@
   "license": "MIT",
   "scripts": {
     "start": "node -r @babel/register --inspect index.js",
-    "dev": "nodemon"
+    "dev": "nodemon",
+    "razor": "set RAZOR=true&&nodemon"
   },
   "dependencies": {
     "hexy": "^0.2.11",
+    "semver": "^5.6.0",
     "uuid": "^3.3.2"
   },
   "devDependencies": {
