@@ -187,9 +187,11 @@ const config = {
   ],
   charLimit: 5
 };
-const characters = [{
-  name: 'Hello World'
-}]; // empty :(
+const users = [{
+  username: 'username',
+  password: 'password',
+  characters: [] // empty :(
+}];
 const server = createServer();
 let response;
 let tmp;
@@ -238,37 +240,61 @@ server.on('connection', socket => {
       let password = data.slice(31, 61).toString('utf8').split('\0')[0];
       let nextLoginKey = data.readUInt8(61);
 
-      if (username === 'username' && password === 'password') {
-        let servers = config.servers.filter(server => server.active);
-        let tmp_0xa8 = [0xa8]; // game server list
-
-        let fixedLength = 1 + 2 + 1 + 2; // cmd + length + sysinfo + number of servers
-        let dynamicLength = servers.length * (2 + 32 + 1 + 1 + 4); // index + name + percentage + timezone + ip
-        let totalLength = fixedLength + dynamicLength;
-        let length_0x80 = [totalLength & 0xff00, totalLength & 0xff]; // writeUInt16BE ?
-        tmp_0xa8 = tmp_0xa8.concat(length_0x80); // length
-        tmp_0xa8 = tmp_0xa8.concat([0x5d]); // system info
-        tmp_0xa8 = tmp_0xa8.concat([servers.length & 0xff00, servers.length & 0xff]); // # of servers
-
-        for (let i = 0; i < servers.length; ++i) {
-          let server = servers[i];
-
-          tmp_0xa8 = tmp_0xa8.concat([i & 0xff00, i & 0xff]); // server index (0-based)
-
-          let name = Buffer.alloc(32);
-          name.write(server.name);
-          tmp_0xa8 = tmp_0xa8.concat(name.toJSON().data); // server name
-          tmp_0xa8 = tmp_0xa8.concat([0x01]); // percent full
-          tmp_0xa8 = tmp_0xa8.concat([0x02]); // timezone
-          tmp_0xa8 = tmp_0xa8.concat(server.ip.split('.').reverse().map(octet => parseInt(octet))); // server ip to ping
-        }
-
-        response = Buffer.from(tmp_0xa8);
-      } else {
+      if (!username || !password) {
         response = Buffer.from([
           0x82, // login rejected packet
           0x00 // incorrect name/password
         ]);
+      } else {
+        let user = users.filter(user => user.username === username && user.password === password)[0];
+
+        if (typeof user === 'undefined') {
+          response = Buffer.from([
+            0x82,
+            0x03 // your account credentials are invalid
+          ]);
+        } else if ('online' in user && user.online === true) {
+          response = Buffer.from([
+            0x82,
+            0x01 // someone is already using this account
+          ]);
+        } else if ('blocked' in user && user.blocked === true) {
+          response = Buffer.from([
+            0x82,
+            0x02 // your account has been blocked
+          ]);
+        } else if (parseInt(Math.random() * 100) <= 1) {
+          response = Buffer.from([
+            0x82,
+            0x04 // communication problem
+          ]);
+        } else {
+          let servers = config.servers.filter(server => server.active);
+          let tmp_0xa8 = [0xa8]; // game server list
+
+          let fixedLength = 1 + 2 + 1 + 2; // cmd + length + sysinfo + number of servers
+          let dynamicLength = servers.length * (2 + 32 + 1 + 1 + 4); // index + name + percentage + timezone + ip
+          let totalLength = fixedLength + dynamicLength;
+          let length_0x80 = [totalLength & 0xff00, totalLength & 0xff]; // writeUInt16BE ?
+          tmp_0xa8 = tmp_0xa8.concat(length_0x80); // length
+          tmp_0xa8 = tmp_0xa8.concat([0x5d]); // system info
+          tmp_0xa8 = tmp_0xa8.concat([servers.length & 0xff00, servers.length & 0xff]); // # of servers
+
+          for (let i = 0; i < servers.length; ++i) {
+            let server = servers[i];
+
+            tmp_0xa8 = tmp_0xa8.concat([i & 0xff00, i & 0xff]); // server index (0-based)
+
+            let name = Buffer.alloc(32);
+            name.write(server.name);
+            tmp_0xa8 = tmp_0xa8.concat(name.toJSON().data); // server name
+            tmp_0xa8 = tmp_0xa8.concat([0x01]); // percent full
+            tmp_0xa8 = tmp_0xa8.concat([0x02]); // timezone
+            tmp_0xa8 = tmp_0xa8.concat(server.ip.split('.').reverse().map(octet => parseInt(octet))); // server ip to ping
+          }
+
+          response = Buffer.from(tmp_0xa8);
+        }
       }
     } else if (cmd === 0xa0) {
       let index = data.readUInt16BE(1);
@@ -294,7 +320,9 @@ server.on('connection', socket => {
       let password = cred[1];
 
       // TODO: proper auth check, this is game server from now on
-      if (username === 'username' && password === 'password') {
+      let user = users.filter(user => user.username === username && user.password === password)[0];
+
+      if (typeof user !== 'undefined') {
         let tmp_0xb9 = [0xb9]; // enable locked client features
     
         let bitflag = 0x000000
@@ -342,6 +370,8 @@ server.on('connection', socket => {
           newClient = false;
         }
 
+        config.charLimit = user.characters.length; // hackerman!
+
         let length_0xa9 = 1 + 2 
                         + (1 + (config.charLimit * (30 + 30))) 
                         + (1 + (config.startingLocations.length * (newClient ? (1 + 32 + 32 + 4 + 4 + 4 + 4 + 4 + 4) : (1 + 31 + 31))))
@@ -353,8 +383,8 @@ server.on('connection', socket => {
         for (let i = 0; i < config.charLimit; ++i) {
             let tempBuff = Buffer.alloc(60);
 
-            if (i < characters.length) {
-                tempBuff.write(characters[i].name.substr(0, 30), 30);
+            if (i < user.characters.length) {
+                tempBuff.write(user.characters[i].name.substr(0, 30), 30);
             }
 
             tmp_0xa9 = tmp_0xa9.concat(tempBuff.toJSON().data);
