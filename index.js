@@ -9,6 +9,9 @@ import { createServer } from 'net';
 import { hexy } from 'hexy';
 import { lt } from 'semver';
 
+// hacky hacky
+import { p0xa9, p0xb9 } from './hackerman';
+
 // ------------------------------ utilities
 
 const dump = (data, sender) => {
@@ -174,16 +177,17 @@ const config = {
       timezone: 2
     }
   ],
-  startingLocations: [
-    { name: 'Yew', area: 'The Empath Abbey', position: { x: 633, y: 858, z: 0, map: 0 }, cliloc: 1075072 },
-    { name: 'Minoc', area: 'The Barnacle Tavern', position: { x: 2476, y: 413, z: 15, map: 0 }, cliloc: 1075073 },
-    { name: 'Britain', area: "The Wayfarer's Inn", position: { x: 1602, y: 1591, z: 20, map: 0 }, cliloc: 1075074 },
-    { name: 'Moonglow', area: 'The Scholars Inn', position: { x: 4408, y: 1168, z: 0, map: 0 }, cliloc: 1075075 },
-    { name: 'Trinsic', area: "The Traveller's Inn", position: { x: 1845, y: 2745, z: 0, map: 0 }, cliloc: 1075076 },
-    { name: 'New Haven', area: 'New Haven Bank', position: { x: 3667, y: 2625, z: 0, map: 0 }, cliloc: 1150168 },
-    { name: 'Jhelom', area: 'The Mercenary Inn', position: { x: 1374, y: 3826, z: 0, map: 0 }, cliloc: 1075078 },
-    { name: 'Skara Brae', area: 'The Falconers Inn', position: { x: 618, y: 2234, z: 0, map: 0 }, cliloc: 1075079 },
-    { name: 'Vesper', area: 'The Ironwood Inn', position: { x: 2771, y: 976, z: 0, map: 0 }, cliloc: 1075080 }
+startingLocations: [
+    { name: 'New Haven', area: 'New Haven Bank', position: { x: 3503, y: 2574, z: 14, map: 1 }, cliloc: 1150168 },
+    { name: 'Yew', area: 'The Empath Abbey', position: { x: 633, y: 858, z: 0, map: 1 }, cliloc: 1075072 },
+    { name: 'Minoc', area: 'The Barnacle Tavern', position: { x: 2476, y: 413, z: 15, map: 1 }, cliloc: 1075073 },
+    { name: 'Britain', area: "The Wayfarer's Inn", position: { x: 1602, y: 1591, z: 20, map: 1 }, cliloc: 1075074 },
+    { name: 'Moonglow', area: 'The Scholars Inn', position: { x: 4408, y: 1168, z: 0, map: 1 }, cliloc: 1075075 },
+    { name: 'Trinsic', area: "The Traveller's Inn", position: { x: 1845, y: 2745, z: 0, map: 1 }, cliloc: 1075076 },
+    { name: 'Jhelom', area: 'The Mercenary Inn', position: { x: 1374, y: 3826, z: 0, map: 1 }, cliloc: 1075078 },
+    { name: 'Skara Brae', area: "The Falconer's Inn", position: { x: 618, y: 2234, z: 0, map: 1 }, cliloc: 1075079 },
+    { name: 'Vesper', area: 'The Ironwood Inn', position: { x: 2771, y: 976, z: 0, map: 0 }, cliloc: 1075080 },
+    { name: 'Royal City', area: 'Royal City Inn', position: { x: 738, y: 3486, z: 0, map: 5 }, cliloc: 1150169 }
   ],
   charLimit: 7
 };
@@ -352,65 +356,40 @@ server.on('connection', socket => {
 
         // prettier-ignore
         let bitflag = 0x000000 
-                    | 0x000001 // enable T2A features: chat, regions
-                    | 0x000002 // enable renaissance features
-                    | 0x000004 // enable third dawn features
-                    | 0x000008 // enable LBR features: skills, map
-                    | 0x000010 // enable AOS features: skills, map, spells, fightbook
-                    | 0x000020 // 6th character slot
-                    | 0x000040 // enable SE features
-                    | 0x000080 // enable ML features: elven race, spells, skills
-                 // | 0x000100 // enable 8th age splash screen
-                    | 0x000200 // enable 9th age splash screen
-                 // | 0x000400 // enable 10th age
-                 // | 0x000800 // enable increased housing and bank storage
-                    | 0x001000 // 7th character slot
-                 // | 0x002000 // enable KR faces
-                 // | 0x004000 // enable trial account
-                    | 0x008000 // enable live account
-                    | 0x010000 // enable SA features: gargoyle race, spells, skills
-                    | 0x020000 // enable HSA features
-                    | 0x040000 // enable Gothic housing tiles
-                    | 0x080000 // enable Rustic housing tiles
-                    | 0x100000 // enable Jungle housing tiles
-                    | 0x200000 // enabled Shadowguard housing tiles
-                    | 0x400000 // enable TOL features
+                    | 0x000001  // enable T2A features: chat, regions
+                    | 0x000002  // enable renaissance features
+                    | 0x000004  // enable third dawn features
+                    | 0x000008  // enable LBR features: skills, map
+                    | 0x000010  // enable AOS features: skills, map, spells, fightbook
+                    | 0x000020  // 6th character slot
+                    | 0x000040  // enable SE features
+                    | 0x000080  // enable ML features: elven race, spells, skills
+                 // | 0x000100  // enable 8th age splash screen
+                    | 0x000200  // enable 9th age splash screen
+                 // | 0x000400  // enable 10th age
+                 // | 0x000800  // enable increased housing and bank storage
+                    | 0x001000  // 7th character slot
+                 // | 0x002000  // enable KR faces
+                 // | 0x004000  // enable trial account
+                    | 0x008000  // enable live account
+                    | 0x010000  // enable SA features: gargoyle race, spells, skills
+                    | 0x020000  // enable HSA features
+                    | 0x040000  // enable Gothic housing tiles
+                    | 0x080000  // enable Rustic housing tiles
+                    | 0x100000  // enable Jungle housing tiles
+                    | 0x200000  // enabled Shadowguard housing tiles
+                    | 0x400000  // enable TOL features
                     | 0x800000; // enable Endless Journey account
 
         let tempBitFlag = Buffer.alloc(4);
         tempBitFlag.writeUInt32BE(bitflag);
         tmp_0xb9 = tmp_0xb9.concat(tempBitFlag.toJSON().data);
 
-        response = Buffer.from(tmp_0xb9);
+        // response = Buffer.from([0x00, 0xff, 0x92, 0xdb]);
+        response = p0xb9;
 
         dump(response, 'server *');
         socket.write(response);
-
-        /*
-        // ServUO sends this
-        response = Buffer.from([
-          // there's no packet with this id :/
-          0x0a, 
-
-          // no clue
-          0x22, 0xf7, 0xa6, 0xfa, 0x42, 
-
-          // Hello World
-          0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x57, 0x6f, 0x72, 0x6c, 0x64, 
-
-          // no clue either
-          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
-          
-          // index maybe?
-          0x01, 
-
-          // ip for sure
-          0x01, 0x00, 0x00, 0x7f   // 1 0 0 127
-        ]);
-
-        dump(response, 'server');
-        socket.write(response);
-        */
 
         let tmp_0xa9 = [0xa9]; // characters / starting locations
 
@@ -422,10 +401,7 @@ server.on('connection', socket => {
 
         console.log(`newClient: ${newClient}`);
 
-        // (11 + (config.charLimit * 60) + (config.startingLocations.length * 89)) <- new
-        // (11 + (config.charLimit * 60) + (config.startingLocations.length * 63)) <- old
         let length_0xa9 = 11 + config.charLimit * 60 + config.startingLocations.length * (newClient ? 89 : 63);
-
         tmp_0xa9 = tmp_0xa9.concat([length_0xa9 & 0xff00, length_0xa9 & 0xff]); // writeUInt16BE ?
         tmp_0xa9 = tmp_0xa9.concat(config.charLimit); // number of characters
 
@@ -482,22 +458,22 @@ server.on('connection', socket => {
 
         // prettier-ignore
         let flags = 0x0000
-        // | 0x0001  // unknown
-        // | 0x0002  // send config/req logout (IGR?, overwrite configuration button?)
-        // | 0x0004  // single character (siege - limit 1 character/account)
-           | 0x0008  // enable npcpopup/context menus
-        // | 0x0010  // limit character slots?
-           | 0x0020  // enable common AOS features (tooltip thing/fight system book, but not AOS monsters/map/skills, necromancer/paladin classes)
-           | 0x0040  // 6th character slot
-           | 0x0080  // samurai and ninja classes
-           | 0x0100  // elven race
-        // | 0x0200  // KR support flag1 ?
-        // | 0x0400  // send UO3D client type (client will send 0xE1 packet)
-        // | 0x0800  // unknown
-           | 0x1000; // 7th character slot, only 2D client
-        // | 0x2000  // unknown (SA?)
-        // | 0x4000  // new movement packets 0xF0 -> 0xF2
-        // | 0x8000; // unlock new felucca areas
+               // | 0x0001  // unknown
+               // | 0x0002  // send config/req logout (IGR?, overwrite configuration button?)
+               // | 0x0004  // single character (siege - limit 1 character/account)
+                  | 0x0008  // enable npcpopup/context menus
+               // | 0x0010  // limit character slots?
+                  | 0x0020  // enable common AOS features (tooltip thing/fight system book, but not AOS monsters/map/skills, necromancer/paladin classes)
+                  | 0x0040  // 6th character slot
+                  | 0x0080  // samurai and ninja classes
+                  | 0x0100  // elven race
+               // | 0x0200  // KR support flag1 ?
+               // | 0x0400  // send UO3D client type (client will send 0xE1 packet)
+               // | 0x0800  // unknown
+                  | 0x1000; // 7th character slot, only 2D client
+               // | 0x2000  // unknown (SA?)
+               // | 0x4000  // new movement packets 0xF0 -> 0xF2
+               // | 0x8000; // unlock new felucca areas
 
         let tempFlags = Buffer.alloc(4);
         tempFlags.writeUInt32BE(flags);
@@ -505,7 +481,9 @@ server.on('connection', socket => {
 
         tmp_0xa9 = tmp_0xa9.concat([0xff, 0xff]); // if SA Enchanced client, last character slot (for highlight)
 
-        response = Buffer.from(tmp_0xa9);
+        // response = Buffer.from(tmp_0xa9);
+        response = p0xa9;
+
       } else {
         response = Buffer.from([
           0x53, // reject character logon packet
@@ -528,9 +506,7 @@ server.on('connection', socket => {
   socket.on('connect', () => console.log('server::socket::connect'));
   socket.on('drain', () => console.log('server::socket::drain'));
   socket.on('end', () => console.log('server::socket::end'));
-  socket.on('lookup', (error, address, family, host) =>
-    console.log('server::socket::lookup', error, address, family, host)
-  );
+  socket.on('lookup', (error, address, family, host) => console.log('server::socket::lookup', error, address, family, host)); // prettier-ignore
   socket.on('timeout', () => console.log('server::socket::timeout'));
 });
 
@@ -539,32 +515,3 @@ server.on('close', () => console.log('server::close'));
 server.on('error', err => console.log(`server::error ${err ? '| err: ' + err : ''}`));
 
 server.listen(config.port, () => console.log(`server::listen (${config.port})`));
-
-/*
-public class PacketReader
-	{
-		private readonly byte[] m_Data;
-		private readonly int m_Size;
-		private int m_Index;
-
-		public PacketReader(byte[] data, int size, bool fixedSize)
-		{
-			m_Data = data;
-			m_Size = size;
-			m_Index = fixedSize ? 1 : 3;
-
-            Console.WriteLine("--------------------------------------------");
-            Console.WriteLine(BitConverter.ToString(m_Data));
-            Console.WriteLine("--------------------------------------------");
-		}
-
-		public byte[] Buffer { get { return m_Data; } }
-
-		public int Size { get { return m_Size; } }
-
-		public void Trace(NetState state)
-		{
-            Console.WriteLine("--------------------------------------------");
-            Console.WriteLine(BitConverter.ToString(m_Data));
-            Console.WriteLine("--------------------------------------------");
-*/
