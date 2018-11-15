@@ -9,9 +9,6 @@ import { createServer } from 'net';
 import { hexy } from 'hexy';
 import { lt } from 'semver';
 
-// hacky hacky
-import { p0xa9, p0xb9 } from './hackerman';
-
 // ------------------------------ utilities
 
 const dump = (data, sender) => {
@@ -64,11 +61,12 @@ const calculateKeys = ({ major, minor, revision, patch }) => {
   };
 };
 
-const compression = src => {
-  let dest = [];
+const compression = {
+  compress: src => {
+    let dest = [];
 
-  // prettier-ignore
-  var huffmanTable = [
+    // prettier-ignore
+    var huffmanTable = [
       0x2, 0x000, 0x5, 0x01f, 0x6, 0x022, 0x7, 0x034, 0x7, 0x075, 0x6, 0x028, 0x6, 0x03b, 0x7, 0x032, 
       0x8, 0x0e0, 0x8, 0x062, 0x7, 0x056, 0x8, 0x079, 0x9, 0x19d, 0x8, 0x097, 0x6, 0x02a, 0x7, 0x057, 
       0x8, 0x071, 0x8, 0x05b, 0x9, 0x1cc, 0x8, 0x0a7, 0x7, 0x025, 0x7, 0x04f, 0x8, 0x066, 0x8, 0x07d, 
@@ -104,43 +102,52 @@ const compression = src => {
       0x4, 0x00d
     ];
 
-  let bitCount = 0;
-  let bitValue = 0;
-  let pEntry = 0;
-  let iDest = 0;
+    let bitCount = 0;
+    let bitValue = 0;
+    let pEntry = 0;
+    let iDest = 0;
 
-  for (let i = 0; i < src.length; ++i) {
-    pEntry = src[i] << 1; // DO NOT TRUNCATE TO 8 BITS
+    for (let i = 0; i < src.length; ++i) {
+      pEntry = src[i] << 1; // DO NOT TRUNCATE TO 8 BITS
+
+      bitCount += huffmanTable[pEntry];
+      bitValue <<= huffmanTable[pEntry];
+      bitValue |= huffmanTable[pEntry + 1];
+
+      while (bitCount >= 8) {
+        bitCount -= 8;
+        dest[iDest++] = (bitValue >>> bitCount) & 0xff;
+      }
+    }
+
+    // terminal code
+    pEntry = 0x200;
 
     bitCount += huffmanTable[pEntry];
     bitValue <<= huffmanTable[pEntry];
     bitValue |= huffmanTable[pEntry + 1];
 
+    // align on byte boundary
+    if ((bitCount & 7) !== 0) {
+      bitValue <<= 8 - (bitCount & 7);
+      bitCount += 8 - (bitCount & 7);
+    }
+
     while (bitCount >= 8) {
       bitCount -= 8;
       dest[iDest++] = (bitValue >>> bitCount) & 0xff;
     }
+
+    // no bigger than 65536
+    let data = Buffer.alloc(0x10000);
+    data.write(dest);
+
+    return data;
+  },
+
+  decompress: src => {
+    return ''; // TODO: ??
   }
-
-  // terminal code
-  pEntry = 0x200;
-
-  bitCount += huffmanTable[pEntry];
-  bitValue <<= huffmanTable[pEntry];
-  bitValue |= huffmanTable[pEntry + 1];
-
-  // align on byte boundary
-  if ((bitCount & 7) !== 0) {
-    bitValue <<= 8 - (bitCount & 7);
-    bitCount += 8 - (bitCount & 7);
-  }
-
-  while (bitCount >= 8) {
-    bitCount -= 8;
-    dest[iDest++] = (bitValue >>> bitCount) & 0xff;
-  }
-
-  return dest;
 };
 
 // ------------------------------ variables
@@ -177,7 +184,7 @@ const config = {
       timezone: 2
     }
   ],
-startingLocations: [
+  startingLocations: [
     { name: 'New Haven', area: 'New Haven Bank', position: { x: 3503, y: 2574, z: 14, map: 1 }, cliloc: 1150168 },
     { name: 'Yew', area: 'The Empath Abbey', position: { x: 633, y: 858, z: 0, map: 1 }, cliloc: 1075072 },
     { name: 'Minoc', area: 'The Barnacle Tavern', position: { x: 2476, y: 413, z: 15, map: 1 }, cliloc: 1075073 },
@@ -385,8 +392,7 @@ server.on('connection', socket => {
         tempBitFlag.writeUInt32BE(bitflag);
         tmp_0xb9 = tmp_0xb9.concat(tempBitFlag.toJSON().data);
 
-        // response = Buffer.from([0x00, 0xff, 0x92, 0xdb]);
-        response = p0xb9;
+        response = compression.compress(Buffer.from([0x00, 0xff, 0x92, 0xdb]));
 
         dump(response, 'server *');
         socket.write(response);
@@ -471,9 +477,9 @@ server.on('connection', socket => {
                // | 0x0400  // send UO3D client type (client will send 0xE1 packet)
                // | 0x0800  // unknown
                   | 0x1000; // 7th character slot, only 2D client
-               // | 0x2000  // unknown (SA?)
-               // | 0x4000  // new movement packets 0xF0 -> 0xF2
-               // | 0x8000; // unlock new felucca areas
+        // | 0x2000  // unknown (SA?)
+        // | 0x4000  // new movement packets 0xF0 -> 0xF2
+        // | 0x8000; // unlock new felucca areas
 
         let tempFlags = Buffer.alloc(4);
         tempFlags.writeUInt32BE(flags);
@@ -481,9 +487,7 @@ server.on('connection', socket => {
 
         tmp_0xa9 = tmp_0xa9.concat([0xff, 0xff]); // if SA Enchanced client, last character slot (for highlight)
 
-        // response = Buffer.from(tmp_0xa9);
-        response = p0xa9;
-
+        response = compression.compress(Buffer.from(tmp_0xa9));
       } else {
         response = Buffer.from([
           0x53, // reject character logon packet
