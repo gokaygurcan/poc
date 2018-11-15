@@ -1,4 +1,4 @@
-//
+// Ultima Online
 
 // ------------------------------ imports
 
@@ -138,11 +138,7 @@ const compression = {
       dest[iDest++] = (bitValue >>> bitCount) & 0xff;
     }
 
-    // no bigger than 65536
-    let data = Buffer.alloc(0x10000);
-    data.write(dest);
-
-    return data;
+    return Buffer.from(dest);
   },
 
   decompress: src => {
