@@ -181,14 +181,14 @@ const config = {
     }
   ],
   startingLocations: [
-    { name: 'New Haven', area: 'New Haven Bank', position: { x: 3503, y: 2574, z: 14, map: 1 }, cliloc: 1150168 },
-    { name: 'Yew', area: 'The Empath Abbey', position: { x: 633, y: 858, z: 0, map: 1 }, cliloc: 1075072 },
-    { name: 'Minoc', area: 'The Barnacle Tavern', position: { x: 2476, y: 413, z: 15, map: 1 }, cliloc: 1075073 },
-    { name: 'Britain', area: "The Wayfarer's Inn", position: { x: 1602, y: 1591, z: 20, map: 1 }, cliloc: 1075074 },
-    { name: 'Moonglow', area: 'The Scholars Inn', position: { x: 4408, y: 1168, z: 0, map: 1 }, cliloc: 1075075 },
-    { name: 'Trinsic', area: "The Traveller's Inn", position: { x: 1845, y: 2745, z: 0, map: 1 }, cliloc: 1075076 },
-    { name: 'Jhelom', area: 'The Mercenary Inn', position: { x: 1374, y: 3826, z: 0, map: 1 }, cliloc: 1075078 },
-    { name: 'Skara Brae', area: "The Falconer's Inn", position: { x: 618, y: 2234, z: 0, map: 1 }, cliloc: 1075079 },
+    { name: 'New Haven', area: 'New Haven Bank', position: { x: 3503, y: 2574, z: 14, map: 0 }, cliloc: 1150168 },
+    { name: 'Yew', area: 'The Empath Abbey', position: { x: 633, y: 858, z: 0, map: 0 }, cliloc: 1075072 },
+    { name: 'Minoc', area: 'The Barnacle Tavern', position: { x: 2476, y: 413, z: 15, map: 0 }, cliloc: 1075073 },
+    { name: 'Britain', area: "The Wayfarer's Inn", position: { x: 1602, y: 1591, z: 20, map: 0 }, cliloc: 1075074 },
+    { name: 'Moonglow', area: 'The Scholars Inn', position: { x: 4408, y: 1168, z: 0, map: 0 }, cliloc: 1075075 },
+    { name: 'Trinsic', area: "The Traveller's Inn", position: { x: 1845, y: 2745, z: 0, map: 0 }, cliloc: 1075076 },
+    { name: 'Jhelom', area: 'The Mercenary Inn', position: { x: 1374, y: 3826, z: 0, map: 0 }, cliloc: 1075078 },
+    { name: 'Skara Brae', area: "The Falconer's Inn", position: { x: 618, y: 2234, z: 0, map: 0 }, cliloc: 1075079 },
     { name: 'Vesper', area: 'The Ironwood Inn', position: { x: 2771, y: 976, z: 0, map: 0 }, cliloc: 1075080 },
     { name: 'Royal City', area: 'Royal City Inn', position: { x: 738, y: 3486, z: 0, map: 5 }, cliloc: 1150169 }
   ],
@@ -208,6 +208,12 @@ let tmp;
 
 // ------------------------------ events
 
+/*
+   sender    encryption     compression
+  -------- | ------------ | -------------
+  server   | nope         | both
+  client   | yep          | nope
+*/
 server.on('connection', socket => {
   console.log('server::connection');
 
@@ -225,6 +231,19 @@ server.on('connection', socket => {
       let minor = data.readUInt32BE(9);
       let revision = data.readUInt32BE(13);
       let patch = data.readUInt32BE(17);
+
+      /*
+      ef 0a 00 4b 01 00 00 00 07 00 00 00 00 00 00 00    o..K............
+      47 00 00 00 1b 80 75 73 65 72 6e 61 6d 65 00 00    G.....username..
+      00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00    ................
+      00 00 00 00 70 61 73 73 77 6f 72 64 00 00 00 00    ....password....
+      00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00    ................
+      00 00 5d                                           ..]
+
+      consider handling this packet. it has both 0xEF and 0x80. 
+      maybe splitting it can be an option, idk.
+      otherwise, client stays in "Verifying Account" screen.
+      */
 
       socket.seed = seed;
       socket.version = { major, minor, revision, patch };
@@ -348,7 +367,8 @@ server.on('connection', socket => {
       let s = connections.get(key);
       if (s.username === username) {
         socket.version = s.version;
-        console.log(`OTP: ${socket.version}`);
+        console.log('--- OTP ---');
+        console.table(socket.version);
       }
 
       // TODO: proper auth check, this is game server from now on
@@ -388,9 +408,9 @@ server.on('connection', socket => {
         tempBitFlag.writeUInt32BE(bitflag);
         tmp_0xb9 = tmp_0xb9.concat(tempBitFlag.toJSON().data);
 
-        response = compression.compress(Buffer.from([0x00, 0xff, 0x92, 0xdb]));
-
         dump(response, 'server *');
+        response = compression.compress(Buffer.from(tmp_0xb9));
+        dump(response, 'server (compressed) *');
         socket.write(response);
 
         let tmp_0xa9 = [0xa9]; // characters / starting locations
@@ -483,6 +503,7 @@ server.on('connection', socket => {
 
         tmp_0xa9 = tmp_0xa9.concat([0xff, 0xff]); // if SA Enchanced client, last character slot (for highlight)
 
+        dump(response, 'server (uncompressed) *');
         response = compression.compress(Buffer.from(tmp_0xa9));
       } else {
         response = Buffer.from([
@@ -490,6 +511,98 @@ server.on('connection', socket => {
           0x00 // incorrect password
         ]);
       }
+    } else if (cmd === 0xf8) {
+      /*
+      f8 ed ed ed ed ff ff ff ff 00 45 72 69 63 20 43 6c 61 70 74 6f 6e 00 00 00 00 00 00 00 00 00 00    xmmmm.....Eric.Clapton..........
+      00 00 00 00 00 00 00 00 00 00 00 00 00 3f 00 00 00 01 00 00 00 03 01 00 00 00 00 00 00 00 00 00    .............?..................
+      00 00 00 00 00 00 02 2d 23 0a 1b 1e 11 1e 28 1e 01 1e 04 1d 20 3b 04 5e 20 4b 04 5e 00 00 00 00    .......-#.....(......;.^.K.^....
+      00 00 0a 00 4b 01 03 26 03 26                                                                      ....K..&.&
+      */
+
+      let character = {
+        pattern1: data.readUInt32BE(1), // 0xedededed
+        pattern2: data.readUInt32BE(5), // 0xffffffff
+        pattern3: data.readUInt8(9), // 0x00
+        charName: data.slice(10, 40).toString('utf8').split('\0')[0], // prettier-ignore
+        unknown0: data.readUInt16BE(40),
+        /*
+        t2a         : 0x00
+        renaissance : 0x01
+        third dawn  : 0x02
+        lbr         : 0x04
+        aos         : 0x08
+        se          : 0x10
+        sa          : 0x20
+        uo3d        : 0x40
+        reserved    : 0x80
+        3dclient    : 0x100
+        */
+        clientflag: data.readUInt32BE(42),
+        unknown1: data.readUInt32BE(46),
+        logincount: data.readUInt32BE(50),
+        profession: data.readUInt8(54),
+        unknown2: data.slice(55, 70).toString('utf8').split('\0')[0], // prettier-ignore
+        /*
+        Male Human      : 0x00
+        Female Human    : 0x01
+        Male Human      : 0x02
+        Female Human    : 0x03
+        Male Elf        : 0x04
+        Female Elf      : 0x05
+        Male Gargoyle   : 0x06
+        Female Gargoyle : 0x07
+        */
+        sex: data.readUInt8(70),
+        str: data.readUInt8(71),
+        dex: data.readUInt8(72),
+        int: data.readUInt8(73),
+        skill1: data.readUInt8(74),
+        skill1value: data.readUInt8(75),
+        skill2: data.readUInt8(76),
+        skill2value: data.readUInt8(77),
+        skill3: data.readUInt8(78),
+        skill3value: data.readUInt8(79),
+        skill4: data.readUInt8(80),
+        skill4value: data.readUInt8(81),
+        skinColor: data.readUInt16BE(82),
+        hairStyle: data.readUInt16BE(84),
+        hairColor: data.readUInt16BE(86),
+        facialHair: data.readUInt16BE(88),
+        facialHairColor: data.readUInt16BE(90),
+        location: data.readUInt16BE(92),// # from starting list 
+        unknown3: data.readUInt16BE(94),// usually 0x00 in testing
+        slot: data.readUInt16BE(96),
+        clientIP: data.readUInt32BE(98),
+        shirtColor: data.readUInt16BE(102),
+        pantsColor: data.readUInt16BE(104)
+      }; // total: 106
+
+      console.log('--- character ---');
+      console.table(character); // save this somewhere, lol
+
+      let tmp_0x1b = [0x1b]; // login confirm
+      tmp_0x1b = tmp_0x1b.concat([0x00, 0x00, 0x00, 0x63]); // player serial
+      tmp_0x1b = tmp_0x1b.concat([0x00, 0x00, 0x00, 0x00]); // unknown. always 0
+      tmp_0x1b = tmp_0x1b.concat([0x01, 0x90]); // body type
+      tmp_0x1b = tmp_0x1b.concat([0x01, 0x90]); // xLoc
+      tmp_0x1b = tmp_0x1b.concat([0x11, 0x38]); // yLoc
+      tmp_0x1b = tmp_0x1b.concat([0x04, 0x90]); // zLoc
+      tmp_0x1b = tmp_0x1b.concat([0x00]); // facing
+      tmp_0x1b = tmp_0x1b.concat([0x00, 0xFF, 0xFF, 0xFF]); // unknown 0x0
+      tmp_0x1b = tmp_0x1b.concat([0xFF, 0x00, 0x00, 0x00]); // unknown 0x0
+      tmp_0x1b = tmp_0x1b.concat([0x00]); // unknown 0x0
+      tmp_0x1b = tmp_0x1b.concat([0x1C, 0x00]); // server boundary width
+      tmp_0x1b = tmp_0x1b.concat([0x10, 0x00]); // server boundary height
+      tmp_0x1b = tmp_0x1b.concat([0x00, 0x00]); // unknown 0x0
+      tmp_0x1b = tmp_0x1b.concat([0x00, 0x00, 0x00, 0x00]); // unknown 0x0   
+
+      dump(Buffer.from(tmp_0x1b), 'server *');
+      response = compression.compress(Buffer.from(tmp_0x1b)); // total was 37
+      dump(response, 'server (compressed) *');
+      socket.write(response);
+
+      // do we need compression here? idk.
+      response = compression.compress(Buffer.from([0x55])); // login complete, total was 1
     } else if (cmd === 0x00) {
       // ?
     }
