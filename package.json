@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "hexy": "^0.2.11",
+    "mitt": "^1.1.3",
     "semver": "^5.6.0",
     "uuid": "^3.3.2"
   },
@@ -26,5 +27,11 @@
   },
   "resolutions": {
     "babel-core": "7.0.0-bridge.0"
+  },
+  "paths": {
+    "server": "./server",
+    "sdk": "./sdk",
+    "scripts": "./scripts",
+    "root": "./"
   }
 }

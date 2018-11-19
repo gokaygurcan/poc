@@ -182,14 +182,14 @@ const config = {
   ],
   startingLocations: [
     { name: 'New Haven', area: 'New Haven Bank', position: { x: 3503, y: 2574, z: 14, map: 0 }, cliloc: 1150168 },
-    { name: 'Yew', area: 'The Empath Abbey', position: { x: 633, y: 858, z: 0, map: 0 }, cliloc: 1075072 },
-    { name: 'Minoc', area: 'The Barnacle Tavern', position: { x: 2476, y: 413, z: 15, map: 0 }, cliloc: 1075073 },
-    { name: 'Britain', area: "The Wayfarer's Inn", position: { x: 1602, y: 1591, z: 20, map: 0 }, cliloc: 1075074 },
-    { name: 'Moonglow', area: 'The Scholars Inn', position: { x: 4408, y: 1168, z: 0, map: 0 }, cliloc: 1075075 },
-    { name: 'Trinsic', area: "The Traveller's Inn", position: { x: 1845, y: 2745, z: 0, map: 0 }, cliloc: 1075076 },
-    { name: 'Jhelom', area: 'The Mercenary Inn', position: { x: 1374, y: 3826, z: 0, map: 0 }, cliloc: 1075078 },
-    { name: 'Skara Brae', area: "The Falconer's Inn", position: { x: 618, y: 2234, z: 0, map: 0 }, cliloc: 1075079 },
-    { name: 'Vesper', area: 'The Ironwood Inn', position: { x: 2771, y: 976, z: 0, map: 0 }, cliloc: 1075080 },
+    { name: 'Yew', area: 'The Empath Abbey', position: { x: 633, y: 858, z: 0, map: 1 }, cliloc: 1075072 },
+    { name: 'Minoc', area: 'The Barnacle Tavern', position: { x: 2476, y: 413, z: 15, map: 1 }, cliloc: 1075073 },
+    { name: 'Britain', area: "The Wayfarer's Inn", position: { x: 1602, y: 1591, z: 20, map: 1 }, cliloc: 1075074 },
+    { name: 'Moonglow', area: 'The Scholars Inn', position: { x: 4408, y: 1168, z: 0, map: 1 }, cliloc: 1075075 },
+    { name: 'Trinsic', area: "The Traveller's Inn", position: { x: 1845, y: 2745, z: 0, map: 1 }, cliloc: 1075076 },
+    { name: 'Jhelom', area: 'The Mercenary Inn', position: { x: 1374, y: 3826, z: 0, map: 1 }, cliloc: 1075078 },
+    { name: 'Skara Brae', area: "The Falconer's Inn", position: { x: 618, y: 2234, z: 0, map: 1 }, cliloc: 1075079 },
+    { name: 'Vesper', area: 'The Ironwood Inn', position: { x: 2771, y: 976, z: 0, map: 1 }, cliloc: 1075080 },
     { name: 'Royal City', area: 'Royal City Inn', position: { x: 738, y: 3486, z: 0, map: 5 }, cliloc: 1150169 }
   ],
   charLimit: 7
@@ -224,6 +224,7 @@ server.on('connection', socket => {
 
     let cmd = data.readUInt8(0);
 
+    /* 0xF0, 0xF1, 0xCF, 0x80, 0x91, 0xA4, 0xEF */
     if (cmd === 0xef) {
       // login seed packet
       let seed = data.readUInt32BE(1);
@@ -307,7 +308,13 @@ server.on('connection', socket => {
           let totalLength = fixedLength + dynamicLength;
           let length_0x80 = [totalLength & 0xff00, totalLength & 0xff]; // writeUInt16BE ?
           tmp_0xa8 = tmp_0xa8.concat(length_0x80); // length
-          tmp_0xa8 = tmp_0xa8.concat([0x5d]); // system info
+          /*
+          System Info Flags: 
+          0xCC - Do not send video card info
+          0x64 - Send Video card
+          RunUO And SteamEngine both send 0x5D
+          */
+          tmp_0xa8 = tmp_0xa8.concat([0x64]); // system info
           tmp_0xa8 = tmp_0xa8.concat([servers.length & 0xff00, servers.length & 0xff]); // # of servers
 
           for (let i = 0; i < servers.length; ++i) {
@@ -408,7 +415,7 @@ server.on('connection', socket => {
         tempBitFlag.writeUInt32BE(bitflag);
         tmp_0xb9 = tmp_0xb9.concat(tempBitFlag.toJSON().data);
 
-        dump(response, 'server *');
+        dump(tmp_0xb9, 'server *');
         response = compression.compress(Buffer.from(tmp_0xb9));
         dump(response, 'server (compressed) *');
         socket.write(response);
@@ -503,7 +510,7 @@ server.on('connection', socket => {
 
         tmp_0xa9 = tmp_0xa9.concat([0xff, 0xff]); // if SA Enchanced client, last character slot (for highlight)
 
-        dump(response, 'server (uncompressed) *');
+        dump(tmp_0xa9, 'server (uncompressed) *');
         response = compression.compress(Buffer.from(tmp_0xa9));
       } else {
         response = Buffer.from([
@@ -569,8 +576,8 @@ server.on('connection', socket => {
         hairColor: data.readUInt16BE(86),
         facialHair: data.readUInt16BE(88),
         facialHairColor: data.readUInt16BE(90),
-        location: data.readUInt16BE(92),// # from starting list 
-        unknown3: data.readUInt16BE(94),// usually 0x00 in testing
+        location: data.readUInt16BE(92), // # from starting list
+        unknown3: data.readUInt16BE(94), // usually 0x00 in testing
         slot: data.readUInt16BE(96),
         clientIP: data.readUInt32BE(98),
         shirtColor: data.readUInt16BE(102),
@@ -588,15 +595,15 @@ server.on('connection', socket => {
       tmp_0x1b = tmp_0x1b.concat([0x11, 0x38]); // yLoc
       tmp_0x1b = tmp_0x1b.concat([0x04, 0x90]); // zLoc
       tmp_0x1b = tmp_0x1b.concat([0x00]); // facing
-      tmp_0x1b = tmp_0x1b.concat([0x00, 0xFF, 0xFF, 0xFF]); // unknown 0x0
-      tmp_0x1b = tmp_0x1b.concat([0xFF, 0x00, 0x00, 0x00]); // unknown 0x0
+      tmp_0x1b = tmp_0x1b.concat([0x00, 0xff, 0xff, 0xff]); // unknown 0x0
+      tmp_0x1b = tmp_0x1b.concat([0xff, 0x00, 0x00, 0x00]); // unknown 0x0
       tmp_0x1b = tmp_0x1b.concat([0x00]); // unknown 0x0
-      tmp_0x1b = tmp_0x1b.concat([0x1C, 0x00]); // server boundary width
+      tmp_0x1b = tmp_0x1b.concat([0x1c, 0x00]); // server boundary width
       tmp_0x1b = tmp_0x1b.concat([0x10, 0x00]); // server boundary height
       tmp_0x1b = tmp_0x1b.concat([0x00, 0x00]); // unknown 0x0
-      tmp_0x1b = tmp_0x1b.concat([0x00, 0x00, 0x00, 0x00]); // unknown 0x0   
+      tmp_0x1b = tmp_0x1b.concat([0x00, 0x00, 0x00, 0x00]); // unknown 0x0
 
-      dump(Buffer.from(tmp_0x1b), 'server *');
+      dump(tmp_0x1b, 'server (uncompressed) *');
       response = compression.compress(Buffer.from(tmp_0x1b)); // total was 37
       dump(response, 'server (compressed) *');
       socket.write(response);
@@ -628,3 +635,23 @@ server.on('close', () => console.log('server::close'));
 server.on('error', err => console.log(`server::error ${err ? '| err: ' + err : ''}`));
 
 server.listen(config.port, () => console.log(`server::listen (${config.port})`));
+
+/*
+client --->
+ef                                                                                                 o
+
+internal/buffer.js:51
+    throw new ERR_BUFFER_OUT_OF_BOUNDS();
+    ^
+
+RangeError [ERR_BUFFER_OUT_OF_BOUNDS]: Attempt to write outside buffer bounds
+    at boundsError (internal/buffer.js:51:11)
+    at Uint8Array.readUInt32BE (internal/buffer.js:196:5)
+    at Socket.readUInt32BE (/Users/gokaygurcan/Projects/GitHub/poc/index.js:230:23)
+    at Socket.emit (events.js:182:13)
+    at addChunk (_stream_readable.js:283:12)
+    at readableAddChunk (_stream_readable.js:264:11)
+    at Socket.Readable.push (_stream_readable.js:219:10)
+    at TCP.onStreamRead [as onread] (internal/stream_base_commons.js:94:17)
+error Command failed with exit code 1.
+*/
