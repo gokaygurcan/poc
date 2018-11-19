@@ -226,28 +226,37 @@ server.on('connection', socket => {
 
     /* 0xF0, 0xF1, 0xCF, 0x80, 0x91, 0xA4, 0xEF */
     if (cmd === 0xef) {
-      // login seed packet
-      let seed = data.readUInt32BE(1);
-      let major = data.readUInt32BE(5);
-      let minor = data.readUInt32BE(9);
-      let revision = data.readUInt32BE(13);
-      let patch = data.readUInt32BE(17);
+      if (data.length === 1) {
+        console.log(socket);
 
-      /*
-      ef 0a 00 4b 01 00 00 00 07 00 00 00 00 00 00 00    o..K............
-      47 00 00 00 1b 80 75 73 65 72 6e 61 6d 65 00 00    G.....username..
-      00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00    ................
-      00 00 00 00 70 61 73 73 77 6f 72 64 00 00 00 00    ....password....
-      00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00    ................
-      00 00 5d                                           ..]
+        response = Buffer.from([
+          0x82,
+          0x04 // communication problem
+        ]);
+      } else {
+        // login seed packet
+        let seed = data.readUInt32BE(1);
+        let major = data.readUInt32BE(5);
+        let minor = data.readUInt32BE(9);
+        let revision = data.readUInt32BE(13);
+        let patch = data.readUInt32BE(17);
 
-      consider handling this packet. it has both 0xEF and 0x80. 
-      maybe splitting it can be an option, idk.
-      otherwise, client stays in "Verifying Account" screen.
-      */
+        /*
+        ef 0a 00 4b 01 00 00 00 07 00 00 00 00 00 00 00    o..K............
+        47 00 00 00 1b 80 75 73 65 72 6e 61 6d 65 00 00    G.....username..
+        00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00    ................
+        00 00 00 00 70 61 73 73 77 6f 72 64 00 00 00 00    ....password....
+        00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00    ................
+        00 00 5d                                           ..]
 
-      socket.seed = seed;
-      socket.version = { major, minor, revision, patch };
+        consider handling this packet. it has both 0xEF and 0x80. 
+        maybe splitting it can be an option, idk.
+        otherwise, client stays in "Verifying Account" screen.
+        */
+
+        socket.seed = seed;
+        socket.version = { major, minor, revision, patch };
+      }
     } else {
       if (razor === false) {
         data = decrypt(data, socket);
@@ -625,19 +634,17 @@ server.on('connection', socket => {
       tmp_0xbf_0x18 = tmp_0xbf_0x18.concat([0x00, 0x00, 0x00, 0x00]); // number of map patches in this map
       tmp_0xbf_0x18 = tmp_0xbf_0x18.concat([0x00, 0x00, 0x00, 0x00]); // number of static patches in this map
       // endFor
- 
+
       dump(tmp_0xbf_0x18, 'server (uncompressed) *');
       response = compression.compress(Buffer.from(tmp_0xbf_0x18));
       dump(response, 'server (compressed) *');
       socket.write(response);
-
 
       let tmp_0x6d = [0x6d]; // play midi music
       tmp_0x6d = tmp_0x6d.concat([0x00, 0x09]); // musicID
       dump(tmp_0x6d, 'server (uncompressed) *');
       response = compression.compress(Buffer.from(tmp_0x6d));
       socket.write(response);
-
 
       let tmp_0xbf_0x08 = [0xbf]; // general information packet
       tmp_0xbf_0x08 = tmp_0xbf_0x08.concat([0x00, 0x06]); // length
@@ -649,7 +656,6 @@ server.on('connection', socket => {
       response = compression.compress(Buffer.from(tmp_0xbf_0x08));
       dump(response, 'server (compressed) *');
       socket.write(response);
-
 
       let tmp_0x78 = [0x78]; // draw object
       tmp_0x78 = tmp_0x78.concat([0x00, 0x71]); // length
@@ -690,12 +696,12 @@ server.on('connection', socket => {
       tmp_0x78 = tmp_0x78.concat([0x40, 0x00, 0x1f, 0xc1, 0x20, 0x3b, 0x0b, 0x04, 0x4e]); // BYTE[2] Graphic
       tmp_0x78 = tmp_0x78.concat([0x40, 0x00, 0x1f, 0xbd, 0x0a, 0x28, 0x02, 0x00, 0x00]); // BYTE[1] Layer
       tmp_0x78 = tmp_0x78.concat([0x40, 0x00, 0x1f, 0xbb, 0x15, 0x17, 0x05, 0x01, 0xf5]); // BYTE[2] Color (this byte only needed if (Graphic&0x8000)
-      tmp_0x78 = tmp_0x78.concat([0x40, 0x00, 0x1f, 0xba, 0x15, 0x2e, 0x04, 0x01, 0xd9]); // 
-      tmp_0x78 = tmp_0x78.concat([0x40, 0x00, 0x1f, 0xb9, 0x17, 0x0f, 0x03, 0x00, 0x00]); // 
-      tmp_0x78 = tmp_0x78.concat([0x40, 0x00, 0x1f, 0xb8, 0x0e, 0xfa, 0x01, 0x00, 0x00]); // 
-      tmp_0x78 = tmp_0x78.concat([0x40, 0x00, 0x1f, 0xb4, 0x17, 0x18, 0x06, 0x00, 0x00]); // 
-      tmp_0x78 = tmp_0x78.concat([0x40, 0x00, 0x1f, 0xb3, 0x1f, 0x03, 0x16, 0x05, 0x2f]); // 
-      tmp_0x78 = tmp_0x78.concat([0x40, 0x00, 0x1f, 0xb2, 0x13, 0xc6, 0x07, 0x00, 0x00]); // 
+      tmp_0x78 = tmp_0x78.concat([0x40, 0x00, 0x1f, 0xba, 0x15, 0x2e, 0x04, 0x01, 0xd9]); //
+      tmp_0x78 = tmp_0x78.concat([0x40, 0x00, 0x1f, 0xb9, 0x17, 0x0f, 0x03, 0x00, 0x00]); //
+      tmp_0x78 = tmp_0x78.concat([0x40, 0x00, 0x1f, 0xb8, 0x0e, 0xfa, 0x01, 0x00, 0x00]); //
+      tmp_0x78 = tmp_0x78.concat([0x40, 0x00, 0x1f, 0xb4, 0x17, 0x18, 0x06, 0x00, 0x00]); //
+      tmp_0x78 = tmp_0x78.concat([0x40, 0x00, 0x1f, 0xb3, 0x1f, 0x03, 0x16, 0x05, 0x2f]); //
+      tmp_0x78 = tmp_0x78.concat([0x40, 0x00, 0x1f, 0xb2, 0x13, 0xc6, 0x07, 0x00, 0x00]); //
       // endLoop
       tmp_0x78 = tmp_0x78.concat([0x00, 0x00, 0x00, 0x00]); // BYTE[4] 0x00000000
 
@@ -703,7 +709,6 @@ server.on('connection', socket => {
       response = compression.compress(Buffer.from(tmp_0x78));
       dump(response, 'server (compressed) *');
       socket.write(response);
-
 
       let tmp_0x17 = [0x17]; // health bar status update (KR)
       tmp_0x17 = tmp_0x17.concat([0x00, 0x0c]); // length
@@ -716,7 +721,6 @@ server.on('connection', socket => {
       response = compression.compress(Buffer.from(tmp_0x17));
       dump(response, 'server (compressed) *');
       socket.write(response);
-
 
       let tmp_0x20 = [0x20]; // draw game player
       tmp_0x20 = tmp_0x20.concat([0x00, 0x00, 0x1f, 0xc4]); // creature id
@@ -735,7 +739,6 @@ server.on('connection', socket => {
       dump(response, 'server (compressed) *');
       socket.write(response);
 
-
       let tmp_0x4f = [0x4f]; // overall light level
       /*
       0x00 - day
@@ -743,12 +746,11 @@ server.on('connection', socket => {
       0x1F - Black
       Max normal val = 0x1F
       */
-      tmp_0x20 = tmp_0x20.concat([0x1a]); // level
+      tmp_0x4f = tmp_0x4f.concat([0x1a]); // level
       dump(tmp_0x4f, 'server (uncompressed) *');
       response = compression.compress(Buffer.from(tmp_0x4f));
       dump(response, 'server (compressed) *');
       socket.write(response);
-
 
       let tmp_0x11 = [0x11]; // status bar info
       tmp_0x11 = tmp_0x11.concat([0x00, 0x70]); // length
@@ -821,21 +823,19 @@ server.on('connection', socket => {
       dump(response, 'server (compressed) *');
       socket.write(response);
 
-
       let tmp_0xbf_0x19 = [0xbf]; // general information packet
       tmp_0xbf_0x19 = tmp_0xbf_0x19.concat([0x00, 0x06]); // length
       tmp_0xbf_0x19 = tmp_0xbf_0x19.concat([0x00, 0x19]); // subcommand id (extended stats)
       // subcommand details
-      tmp_0xbf_0x19 = tmp_0xbf_0x19.concat([0x02]); // subsubcommand (0x2 for 2D client, 0x5 for KR client) 
+      tmp_0xbf_0x19 = tmp_0xbf_0x19.concat([0x02]); // subsubcommand (0x2 for 2D client, 0x5 for KR client)
       tmp_0xbf_0x19 = tmp_0xbf_0x19.concat([0x00, 0x00, 0x1f, 0xc4]); // serial
-      tmp_0xbf_0x19 = tmp_0xbf_0x19.concat([0x00]); // unknown (always 0) 
+      tmp_0xbf_0x19 = tmp_0xbf_0x19.concat([0x00]); // unknown (always 0)
       tmp_0xbf_0x19 = tmp_0xbf_0x19.concat([0x00]); // Lock flags (0 = up, 1 = down, 2 = locked, FF = update mobile status animation ( KR only )
 
       dump(tmp_0xbf_0x19, 'server (uncompressed) *');
       response = compression.compress(Buffer.from(tmp_0xbf_0x19));
       dump(response, 'server (compressed) *');
       socket.write(response);
-
 
       let tmp_0x72 = [0x72]; // request war mode
       /*
@@ -850,7 +850,6 @@ server.on('connection', socket => {
       dump(response, 'server (compressed) *');
       socket.write(response);
 
-
       let tmp_0x55 = [0x55]; // login complete
       dump(tmp_0x55, 'server (uncompressed) *');
       response = compression.compress(Buffer.from(tmp_0x55));
@@ -862,6 +861,8 @@ server.on('connection', socket => {
       dump(response, 'server');
       socket.write(response);
       response = null;
+
+      console.log('-----------------------------------------------------------------------------------------------------------------------------------'); // prettier-ignore
     }
   });
 

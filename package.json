@@ -5,7 +5,7 @@
   "scripts": {
     "start": "node -r @babel/register --inspect index.js",
     "dev": "nodemon",
-    "razor": "set RAZOR=true&&nodemon"
+    "razor": "cross-env RAZOR=true nodemon"
   },
   "dependencies": {
     "hexy": "^0.2.11",
@@ -23,6 +23,7 @@
     "@babel/plugin-syntax-class-properties": "^7.0.0",
     "@babel/preset-env": "^7.1.6",
     "@babel/register": "^7.0.0",
+    "cross-env": "^5.2.0",
     "nodemon": "^1.18.6"
   },
   "resolutions": {
