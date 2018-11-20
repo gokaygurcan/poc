@@ -1,0 +1,17 @@
+[ignore]
+node_modules/
+
+[include]
+
+[libs]
+flow-typed/
+
+[lints]
+all=warn
+nonstrict-import=error
+
+[options]
+log.file=flow.log
+
+[strict]
+nonstrict-import
