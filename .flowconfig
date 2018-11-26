@@ -12,6 +12,16 @@ nonstrict-import=error
 
 [options]
 log.file=flow.log
+module.use_strict=true
+munge_underscores=true
+
+# Provides an escape hatch to suppress flow type errors.
+# Example: `function foo(bar: $FlowFixMe) {...}`.
+suppress_type=$FlowFixMe
+
+# Provides a way to suppress flow errors in the following line.
+# Example: // $FlowSuppressError: This following line is borked because of reasons.
+suppress_comment= \\(.\\|\n\\)*\\$FlowSuppressError
 
 [strict]
 nonstrict-import

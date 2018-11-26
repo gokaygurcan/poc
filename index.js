@@ -880,23 +880,3 @@ server.on('close', () => console.log('server::close'));
 server.on('error', err => console.log(`server::error ${err ? '| err: ' + err : ''}`));
 
 server.listen(config.port, () => console.log(`server::listen (${config.port})`));
-
-/*
-client --->
-ef                                                                                                 o
-
-internal/buffer.js:51
-    throw new ERR_BUFFER_OUT_OF_BOUNDS();
-    ^
-
-RangeError [ERR_BUFFER_OUT_OF_BOUNDS]: Attempt to write outside buffer bounds
-    at boundsError (internal/buffer.js:51:11)
-    at Uint8Array.readUInt32BE (internal/buffer.js:196:5)
-    at Socket.readUInt32BE (/Users/gokaygurcan/Projects/GitHub/poc/index.js:230:23)
-    at Socket.emit (events.js:182:13)
-    at addChunk (_stream_readable.js:283:12)
-    at readableAddChunk (_stream_readable.js:264:11)
-    at Socket.Readable.push (_stream_readable.js:219:10)
-    at TCP.onStreamRead [as onread] (internal/stream_base_commons.js:94:17)
-error Command failed with exit code 1.
-*/

@@ -28,7 +28,7 @@ class Packet extends BasePacket {
   }
 }
 
-class OxEF extends Packet {
+class LoginServerSeed extends Packet {
   seed: number;
   major: number;
   minor: number;
@@ -38,8 +38,9 @@ class OxEF extends Packet {
   constructor(buffer: Buffer) {
     super();
 
-    this.cmd = buffer.readUInt8(0);
-    this.length = buffer.length;
+    this.cmd = 0xef;
+    this.length = 15;
+
     this.seed = buffer.readUInt32BE(1);
     this.major = buffer.readUInt32BE(5);
     this.minor = buffer.readUInt32BE(9);
@@ -48,5 +49,5 @@ class OxEF extends Packet {
   }
 }
 
-let ef: Packet = new OxEF(buff);
+let ef: Packet = new LoginServerSeed(buff); // ?
 console.table(ef);
