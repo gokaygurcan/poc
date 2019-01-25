@@ -5,26 +5,58 @@
 // core modules
 import { createServer, Server } from 'net';
 
-type Socket = {
-  ...Socket,
-  version: Object,
-  seed: number,
-  username: string
-};
-
 // node modules
 import { hexy } from 'hexy';
-import { lt } from 'semver';
+
+// local modules
+import {
+  x11,
+  x17,
+  x1B,
+  x20,
+  x4F,
+  x53,
+  x55,
+  x6D,
+  x72,
+  x73,
+  x78,
+  x82,
+  x8C,
+  xA8,
+  xA9,
+  xB9,
+  xBF,
+  xBFx08,
+  xBFx18,
+  xBFx19
+} from './packets';
+
+// ------------------------------ types
+
+import type {
+  tCharacter,
+  tClientKeys,
+  tCompression,
+  tConfig,
+  tConnection,
+  tPosition,
+  tServer,
+  tSocket,
+  tStartingLocation,
+  tUser,
+  tVersion
+} from './types';
 
 // ------------------------------ utilities
 
-const dump: Function = (data: Buffer | Array<any>, sender: string): void => {
+const dump = (data: Buffer | Array<number | string>, sender: string): void => {
   console.log(`${sender.indexOf('client') > -1 ? sender + ' --->' : '<---' + sender}`);
   console.log(hexy(data, { width: 32, numbering: 'none', format: 'twos' }));
 };
 
-const decrypt: Function = (data: Buffer, socket: Socket): Buffer => {
-  const keys: Object = calculateKeys(socket.version);
+const decrypt = (data: Buffer, socket: tSocket): Buffer => {
+  const keys: tClientKeys = calculateKeys(socket.version);
 
   const EncryptionSeed: number = socket.seed;
   const FirstClientKey: number = keys.key1;
@@ -46,7 +78,7 @@ const decrypt: Function = (data: Buffer, socket: Socket): Buffer => {
   return Buffer.from(data);
 };
 
-const calculateKeys: Function = ({ major, minor, revision, patch }: Object): Object => {
+const calculateKeys = ({ major, minor, revision, patch }: tVersion): tClientKeys => {
   let key1: number = (major << 23) | (minor << 14) | (revision << 4);
   key1 ^= (revision * revision) << 9;
   key1 ^= minor * minor;
@@ -67,7 +99,7 @@ const calculateKeys: Function = ({ major, minor, revision, patch }: Object): Obj
   };
 };
 
-const compression: Object = {
+const compression: tCompression = {
   // prettier-ignore
   huffmanTable: [
     0x2, 0x000, 0x5, 0x01f, 0x6, 0x022, 0x7, 0x034, 0x7, 0x075, 0x6, 0x028, 0x6, 0x03b, 0x7, 0x032, 
@@ -146,75 +178,51 @@ const compression: Object = {
     return Buffer.from(dest);
   },
 
-  decompress: src => {
-    return ''; // TODO: ??
+  decompress: (src: Buffer | Array<number>): Buffer => {
+    return Buffer.from(src); // TODO: ??
   }
 };
 
 // ------------------------------ variables
 
 const razor: boolean = process.env.RAZOR === 'true';
-const config: Object = {
-  port: 2593,
-  servers: [
-    {
-      id: 1,
-      name: 'Hello World',
-      active: true,
-      ip: '127.0.0.1',
-      port: 2593,
-      max_players: 100,
-      timezone: 2
-    },
-    {
-      id: 2,
-      name: 'Test Server',
-      active: false,
-      ip: '127.0.0.2',
-      port: 2593,
-      max_players: 100,
-      timezone: 2
-    },
-    {
-      id: 3,
-      name: 'Closed Server',
-      active: false,
-      ip: '127.0.0.3',
-      port: 2593,
-      max_players: 100,
-      timezone: 2
-    }
-  ],
-  startingLocations: [
-    { name: 'New Haven', area: 'New Haven Bank', position: { x: 3503, y: 2574, z: 14, map: 0 }, cliloc: 1150168 },
-    { name: 'Yew', area: 'The Empath Abbey', position: { x: 633, y: 858, z: 0, map: 1 }, cliloc: 1075072 },
-    { name: 'Minoc', area: 'The Barnacle Tavern', position: { x: 2476, y: 413, z: 15, map: 1 }, cliloc: 1075073 },
-    { name: 'Britain', area: "The Wayfarer's Inn", position: { x: 1602, y: 1591, z: 20, map: 1 }, cliloc: 1075074 },
-    { name: 'Moonglow', area: 'The Scholars Inn', position: { x: 4408, y: 1168, z: 0, map: 1 }, cliloc: 1075075 },
-    { name: 'Trinsic', area: "The Traveller's Inn", position: { x: 1845, y: 2745, z: 0, map: 1 }, cliloc: 1075076 },
-    { name: 'Jhelom', area: 'The Mercenary Inn', position: { x: 1374, y: 3826, z: 0, map: 1 }, cliloc: 1075078 },
-    { name: 'Skara Brae', area: "The Falconer's Inn", position: { x: 618, y: 2234, z: 0, map: 1 }, cliloc: 1075079 },
-    { name: 'Vesper', area: 'The Ironwood Inn', position: { x: 2771, y: 976, z: 0, map: 1 }, cliloc: 1075080 },
-    { name: 'Royal City', area: 'Royal City Inn', position: { x: 738, y: 3486, z: 0, map: 5 }, cliloc: 1150169 }
-  ],
+const servers: Array<tServer> = [
+  { id: 1, name: 'Hello World', active: true, ip: '127.0.0.1', port: 2593, max_players: 100, timezone: 2 },
+  { id: 2, name: 'Test Server', active: false, ip: '127.0.0.2', port: 2593, max_players: 100, timezone: 2 },
+  { id: 3, name: 'Closed Server', active: false, ip: '127.0.0.3', port: 2593, max_players: 100, timezone: 2 }
+];
+const startingLocations: Array<tStartingLocation> = [
+  { name: 'New Haven', area: 'New Haven Bank', position: { x: 3503, y: 2574, z: 14, map: 0 }, cliloc: 1150168 },
+  { name: 'Yew', area: 'The Empath Abbey', position: { x: 633, y: 858, z: 0, map: 1 }, cliloc: 1075072 },
+  { name: 'Minoc', area: 'The Barnacle Tavern', position: { x: 2476, y: 413, z: 15, map: 1 }, cliloc: 1075073 },
+  { name: 'Britain', area: "The Wayfarer's Inn", position: { x: 1602, y: 1591, z: 20, map: 1 }, cliloc: 1075074 },
+  { name: 'Moonglow', area: 'The Scholars Inn', position: { x: 4408, y: 1168, z: 0, map: 1 }, cliloc: 1075075 },
+  { name: 'Trinsic', area: "The Traveller's Inn", position: { x: 1845, y: 2745, z: 0, map: 1 }, cliloc: 1075076 },
+  { name: 'Jhelom', area: 'The Mercenary Inn', position: { x: 1374, y: 3826, z: 0, map: 1 }, cliloc: 1075078 },
+  { name: 'Skara Brae', area: "The Falconer's Inn", position: { x: 618, y: 2234, z: 0, map: 1 }, cliloc: 1075079 },
+  { name: 'Vesper', area: 'The Ironwood Inn', position: { x: 2771, y: 976, z: 0, map: 1 }, cliloc: 1075080 },
+  { name: 'Royal City', area: 'Royal City Inn', position: { x: 738, y: 3486, z: 0, map: 5 }, cliloc: 1150169 }
+];
+const config: tConfig = {
+  port: parseInt(process.env.PORT || 2593, 10),
+  servers,
+  startingLocations,
   charLimit: 7
 };
-const users: Array<Object> = [
+const users: Array<tUser> = [
   {
     username: 'username',
     password: 'password',
     characters: [] // empty :(
   }
 ];
-const connections: Object = {
-  username: '',
-  password: ''
-};
+const connections: Map<number, tConnection> = new Map();
+
 const server: Server = createServer();
 let response: Buffer | null;
 
 // ------------------------------ events
-server.on('connection', (socket: Socket): void => {
+server.on('connection', (socket: tSocket): void => {
   console.log('server::connection');
 
   socket.setNoDelay(true); // the nagle algorithm
@@ -246,10 +254,7 @@ server.on('connection', (socket: Socket): void => {
         same for this one. it's just 0xEF without any client info.
         */
 
-        response = Buffer.from([
-          0x82,
-          0x04 // communication problem
-        ]);
+        response = x82('COMMUNICATION_PROBLEM');
       } else {
         // login seed packet
         let seed: number = data.readUInt32BE(1);
@@ -273,10 +278,7 @@ server.on('connection', (socket: Socket): void => {
 
     if (cmd === 0x73) {
       // ping packet
-      response = Buffer.from([
-        0x73, // ping
-        data.readUInt8(1) // sequence number
-      ]);
+      response = x73(data.readUInt8(1));
     } else if (cmd === 0x80) {
       // login request packet
       let username: string = data.slice(1, 31).toString('utf8').split('\0')[0]; // prettier-ignore
@@ -284,108 +286,52 @@ server.on('connection', (socket: Socket): void => {
       let nextLoginKey: number = data.readUInt8(61);
 
       if (!username || !password) {
-        response = Buffer.from([
-          0x82, // login rejected packet
-          0x00 // incorrect name/password
-        ]);
+        response = x82('INCORRECT_NAME_OR_PASSWORD');
       } else {
         let user: Object = users.filter((user: Object) => user.username === username && user.password === password)[0];
 
         if (typeof user === 'undefined') {
-          response = Buffer.from([
-            0x82,
-            0x03 // your account credentials are invalid
-          ]);
+          response = x82('YOUR_CREDENTIALS_ARE_INVALID');
         } else if ('online' in user && user.online === true) {
-          response = Buffer.from([
-            0x82,
-            0x01 // someone is already using this account
-          ]);
+          response = x82('SOMEONE_IS_ALREADY_USING_THIS_ACCOUNT');
         } else if ('blocked' in user && user.blocked === true) {
-          response = Buffer.from([
-            0x82,
-            0x02 // your account has been blocked
-          ]);
+          response = x82('YOUR_ACCOUNT_HAS_BEEN_BLOCKED');
         } else if (parseInt(Math.random() * 100) <= 1) {
-          response = Buffer.from([
-            0x82,
-            0x04 // communication problem
-          ]);
+          response = x82('COMMUNICATION_PROBLEM');
         } else {
           socket.username = username;
+
           let servers: Array<Object> = config.servers.filter(server => server.active);
-          let tmp_0xa8: Array<number> = [0xa8]; // game server list
-
-          let fixedLength: number = 1 + 2 + 1 + 2; // cmd + length + sysinfo + number of servers
-          let dynamicLength: number = servers.length * (2 + 32 + 1 + 1 + 4); // index + name + percentage + timezone + ip
-          let totalLength: number = fixedLength + dynamicLength;
-          let length_0x80: Buffer = Buffer.alloc(2);
-          length_0x80.writeUInt16BE(totalLength, 0);
-          tmp_0xa8 = tmp_0xa8.concat(length_0x80.toJSON().data); // length
-          /*
-          System Info Flags: 
-          0xCC - Do not send video card info
-          0x64 - Send Video card
-          RunUO And SteamEngine both send 0x5D
-          */
-          tmp_0xa8 = tmp_0xa8.concat([0x64]); // system info
-          tmp_0xa8 = tmp_0xa8.concat([servers.length & 0xff00, servers.length & 0xff]); // # of servers
-
-          for (let i: number = 0; i < servers.length; ++i) {
-            let server: Object = servers[i];
-
-            tmp_0xa8 = tmp_0xa8.concat([i & 0xff00, i & 0xff]); // server index (0-based)
-
-            let name: Buffer = Buffer.alloc(32);
-            name.write(server.name);
-            tmp_0xa8 = tmp_0xa8.concat(name.toJSON().data); // server name
-            tmp_0xa8 = tmp_0xa8.concat([0x01]); // percent full
-            tmp_0xa8 = tmp_0xa8.concat([0x02]); // timezone
-            // server ip to ping
-            tmp_0xa8 = tmp_0xa8.concat(server.ip.split('.').reverse().map(octet => parseInt(octet))); // prettier-ignore
-          }
-
-          response = Buffer.from(tmp_0xa8);
+          response = xA8(servers);
         }
       }
     } else if (cmd === 0xa0) {
       let index: number = data.readUInt16BE(1);
-      let server: Object = config.servers.filter(server => server.active)[index];
+      let server: tServer = config.servers.filter(server => server.active)[index];
 
       if (typeof server === 'undefined') {
-        response = Buffer.from([
-          0x53, // reject character logon packet
-          0x03 // could not attach to game server
-        ]);
+        response = x53('COULD_NOT_ATTACH_TO_GAME_SERVER');
       }
-
-      let tmp_0xa0 = [0x8c]; // connect to game server
-      // server ip
-      tmp_0xa0 = tmp_0xa0.concat(server.ip.split('.').map(octet => parseInt(octet) & 0xff)); // prettier-ignore
-
-      let port: Buffer = Buffer.alloc(2);
-      port.writeInt16BE(server.port, 0);
-      tmp_0xa0 = tmp_0xa0.concat(port.toJSON().data);
 
       // TODO: implement OTP kind of stuff.
       // https://docs.mongodb.com/manual/tutorial/expire-data/
       let key: Buffer = Buffer.alloc(4);
       key.writeUInt32BE(parseInt(0xffffffff * Math.random()), 0);
-      tmp_0xa0 = tmp_0xa0.concat(key.toJSON().data);
 
-      connections[key.readUInt32BE(0)] = {
+      let connection: tConnection = {
         username: socket.username,
         version: socket.version
       };
+      connections.set(key.readUInt32BE(0), connection);
 
-      response = Buffer.from(tmp_0xa0);
+      response = x8C(server, key);
     } else if (cmd === 0x91) {
       let key: number = data.readUInt32BE(1);
       let cred: Array<string> = data.slice(5).toString('utf8').split('\0').filter(item => item !== ''); // prettier-ignore
-      let username: string = cred[0];
-      let password: string = cred[1];
+      let username: string = cred[0]; // TODO: spread syntax, maybe?
+      let password: string = cred[1]; // TODO: something like let [username, password] = cred
 
-      let s: Object = connections[key];
+      let s: tConnection | any = connections.get(key); // TODO: any is just a monkey patch, find a better solution here.
       if (s.username === username) {
         socket.version = s.version;
         console.log('--- OTP ---');
@@ -393,144 +339,20 @@ server.on('connection', (socket: Socket): void => {
       }
 
       // TODO: proper auth check, this is game server from now on
-      let user: Object = users.filter(user => user.username === username && user.password === password)[0];
+      let user: tUser = users.filter(user => user.username === username && user.password === password)[0];
 
       if (typeof user !== 'undefined') {
-        let tmp_0xb9 = [0xb9]; // enable locked client features
-
-        // prettier-ignore
-        let bitflag: number = 0x000000 
-                    | 0x000001  // enable T2A features: chat, regions
-                    | 0x000002  // enable renaissance features
-                    | 0x000004  // enable third dawn features
-                    | 0x000008  // enable LBR features: skills, map
-                    | 0x000010  // enable AOS features: skills, map, spells, fightbook
-                    | 0x000020  // 6th character slot
-                    | 0x000040  // enable SE features
-                    | 0x000080  // enable ML features: elven race, spells, skills
-                 // | 0x000100  // enable 8th age splash screen
-                    | 0x000200  // enable 9th age splash screen
-                 // | 0x000400  // enable 10th age
-                 // | 0x000800  // enable increased housing and bank storage
-                    | 0x001000  // 7th character slot
-                 // | 0x002000  // enable KR faces
-                 // | 0x004000  // enable trial account
-                    | 0x008000  // enable live account
-                    | 0x010000  // enable SA features: gargoyle race, spells, skills
-                    | 0x020000  // enable HSA features
-                    | 0x040000  // enable Gothic housing tiles
-                    | 0x080000  // enable Rustic housing tiles
-                    | 0x100000  // enable Jungle housing tiles
-                    | 0x200000  // enabled Shadowguard housing tiles
-                    | 0x400000  // enable TOL features
-                    | 0x800000; // enable Endless Journey account
-
-        let tempBitFlag: Buffer = Buffer.alloc(4);
-        tempBitFlag.writeUInt32BE(bitflag, 0);
-        tmp_0xb9 = tmp_0xb9.concat(tempBitFlag.toJSON().data);
-
+        let tmp_0xb9: Buffer = xB9();
         dump(tmp_0xb9, 'server *');
-        response = compression.compress(Buffer.from(tmp_0xb9));
+        response = compression.compress(tmp_0xb9);
         dump(response, 'server (compressed) *');
         socket.write(response);
 
-        let tmp_0xa9: Array<number> = [0xa9]; // characters / starting locations
-
-        // >= 7.0.13.0
-        let newClient: boolean = true;
-        if (lt(`${socket.version.major}.${socket.version.minor}.${socket.version.revision}`, '7.0.13')) {
-          newClient = false;
-        }
-
-        console.log(`newClient: ${newClient.toString()}`);
-
-        let length_0xa9: number = 11 + config.charLimit * 60 + config.startingLocations.length * (newClient ? 89 : 63);
-        tmp_0xa9 = tmp_0xa9.concat([length_0xa9 & 0xff00, length_0xa9 & 0xff]); // writeUInt16BE ?
-        tmp_0xa9 = tmp_0xa9.concat(config.charLimit); // number of characters
-
-        for (let i: number = 0; i < config.charLimit; ++i) {
-          let tempBuff = Buffer.alloc(60);
-
-          if (i < user.characters.length) {
-            tempBuff.write(user.characters[i].name.substr(0, 30));
-          }
-
-          tmp_0xa9 = tmp_0xa9.concat(tempBuff.toJSON().data);
-        }
-
-        tmp_0xa9 = tmp_0xa9.concat(config.startingLocations.length); // number of starting locations (cities)
-
-        let tempSize: number = newClient ? 32 : 31;
-        for (let i: number = 0; i < config.startingLocations.length; ++i) {
-          let startingLocation: Object = config.startingLocations[i];
-
-          tmp_0xa9 = tmp_0xa9.concat(i); // locationIndex (0-based)
-
-          let tempLocationName: Buffer = Buffer.alloc(tempSize);
-          tempLocationName.write(startingLocation.name, 0);
-          tmp_0xa9 = tmp_0xa9.concat(tempLocationName.toJSON().data);
-
-          let tempAreaName: Buffer = Buffer.alloc(tempSize);
-          tempAreaName.write(startingLocation.area, 0);
-          tmp_0xa9 = tmp_0xa9.concat(tempAreaName.toJSON().data);
-
-          if (newClient === true) {
-            let tempPositionX = Buffer.alloc(4);
-            tempPositionX.writeUInt32BE(startingLocation.position.x, 0);
-            tmp_0xa9 = tmp_0xa9.concat(tempPositionX.toJSON().data); // city x coordinate
-
-            let tempPositionY = Buffer.alloc(4);
-            tempPositionY.writeUInt32BE(startingLocation.position.y, 0);
-            tmp_0xa9 = tmp_0xa9.concat(tempPositionY.toJSON().data); // city y coordinate
-
-            let tempPositionZ = Buffer.alloc(4);
-            tempPositionZ.writeUInt32BE(startingLocation.position.z, 0);
-            tmp_0xa9 = tmp_0xa9.concat(tempPositionZ.toJSON().data); // city z coordinate
-
-            let tempPositionMap = Buffer.alloc(4);
-            tempPositionMap.writeUInt32BE(startingLocation.position.map, 0);
-            tmp_0xa9 = tmp_0xa9.concat(tempPositionMap.toJSON().data); // city map / map id
-
-            let tempPositionCliloc = Buffer.alloc(4);
-            tempPositionCliloc.writeUInt32BE(startingLocation.cliloc, 0);
-            tmp_0xa9 = tmp_0xa9.concat(tempPositionCliloc.toJSON().data); // cliloc description
-
-            tmp_0xa9 = tmp_0xa9.concat([0x00, 0x00, 0x00, 0x00]); // always 0
-          }
-        }
-
-        // prettier-ignore
-        let flags = 0x0000
-               // | 0x0001  // unknown
-               // | 0x0002  // send config/req logout (IGR?, overwrite configuration button?)
-               // | 0x0004  // single character (siege - limit 1 character/account)
-                  | 0x0008  // enable npcpopup/context menus
-               // | 0x0010  // limit character slots?
-                  | 0x0020  // enable common AOS features (tooltip thing/fight system book, but not AOS monsters/map/skills, necromancer/paladin classes)
-                  | 0x0040  // 6th character slot
-                  | 0x0080  // samurai and ninja classes
-                  | 0x0100  // elven race
-               // | 0x0200  // KR support flag1 ?
-               // | 0x0400  // send UO3D client type (client will send 0xE1 packet)
-               // | 0x0800  // unknown
-                  | 0x1000; // 7th character slot, only 2D client
-        // | 0x2000  // unknown (SA?)
-        // | 0x4000  // new movement packets 0xF0 -> 0xF2
-        // | 0x8000; // unlock new felucca areas
-
-        let tempFlags = Buffer.alloc(4);
-        tempFlags.writeUInt32BE(flags, 0);
-        tmp_0xa9 = tmp_0xa9.concat(tempFlags.toJSON().data);
-
-        tmp_0xa9 = tmp_0xa9.concat([0xff, 0xff]); // if SA Enchanced client, last character slot (for highlight)
-
+        let tmp_0xa9: Buffer = xA9(config, socket, user);
         dump(tmp_0xa9, 'server (uncompressed) *');
-        response = compression.compress(Buffer.from(tmp_0xa9));
+        response = compression.compress(tmp_0xa9);
       } else {
-        response = Buffer.from([
-          0x53, // reject character logon packet
-          0x00 // incorrect password
-        ]);
+        response = x53('INCORRECT_PASSWORD')
       }
     } else if (cmd === 0xf8) {
       /*
@@ -601,263 +423,75 @@ server.on('connection', (socket: Socket): void => {
       console.log('--- character ---');
       console.table(character); // save this somewhere, lol
 
-      let tmp_0x1b: Array<number> = [0x1b]; // login confirm
-      tmp_0x1b = tmp_0x1b.concat([0x00, 0x00, 0x00, 0x63]); // player serial
-      tmp_0x1b = tmp_0x1b.concat([0x00, 0x00, 0x00, 0x00]); // unknown. always 0
-      tmp_0x1b = tmp_0x1b.concat([0x01, 0x90]); // body type
-      tmp_0x1b = tmp_0x1b.concat([0x05, 0xd8]); // xLoc
-      tmp_0x1b = tmp_0x1b.concat([0x06, 0x5c]); // yLoc
-      tmp_0x1b = tmp_0x1b.concat([0x00, 0x0a]); // zLoc
-      tmp_0x1b = tmp_0x1b.concat([0x03]); // facing
-      tmp_0x1b = tmp_0x1b.concat([0x00, 0xff, 0xff, 0xff]); // unknown 0x0
-      tmp_0x1b = tmp_0x1b.concat([0xff, 0x00, 0x00, 0x00]); // unknown 0x0
-      tmp_0x1b = tmp_0x1b.concat([0x00]); // unknown 0x0
-      tmp_0x1b = tmp_0x1b.concat([0x18, 0x00]); // server boundary width
-      tmp_0x1b = tmp_0x1b.concat([0x10, 0x00]); // server boundary height
-      tmp_0x1b = tmp_0x1b.concat([0x00, 0x00]); // unknown 0x0
-      tmp_0x1b = tmp_0x1b.concat([0x00, 0x00, 0x00, 0x00]); // unknown 0x0
-
+      let tmp_0x1b: Buffer = x1B();
       dump(tmp_0x1b, 'server (uncompressed) *');
-      response = compression.compress(Buffer.from(tmp_0x1b));
+      response = compression.compress(tmp_0x1b);
       dump(response, 'server (compressed) *');
       socket.write(response);
 
-      let tmp_0xbf_0x18: Array<number> = [0xbf]; // general information packet
-      tmp_0xbf_0x18 = tmp_0xbf_0x18.concat([0x00, 0x31]); // length
-      tmp_0xbf_0x18 = tmp_0xbf_0x18.concat([0x00, 0x18]); // subcommand id (enable map-diff)
-      // subcommand details
-      tmp_0xbf_0x18 = tmp_0xbf_0x18.concat([0x00, 0x00, 0x00, 0x05]); // number of maps
-      // for each map
-      tmp_0xbf_0x18 = tmp_0xbf_0x18.concat([0x00, 0x00, 0x00, 0x00]); // number of map patches in this map
-      tmp_0xbf_0x18 = tmp_0xbf_0x18.concat([0x00, 0x00, 0x00, 0x00]); // number of static patches in this map
-      tmp_0xbf_0x18 = tmp_0xbf_0x18.concat([0x00, 0x00, 0x00, 0x00]); // number of map patches in this map
-      tmp_0xbf_0x18 = tmp_0xbf_0x18.concat([0x00, 0x00, 0x00, 0x00]); // number of static patches in this map
-      tmp_0xbf_0x18 = tmp_0xbf_0x18.concat([0x00, 0x00, 0x00, 0x00]); // number of map patches in this map
-      tmp_0xbf_0x18 = tmp_0xbf_0x18.concat([0x00, 0x00, 0x00, 0x00]); // number of static patches in this map
-      tmp_0xbf_0x18 = tmp_0xbf_0x18.concat([0x00, 0x00, 0x00, 0x00]); // number of map patches in this map
-      tmp_0xbf_0x18 = tmp_0xbf_0x18.concat([0x00, 0x00, 0x00, 0x00]); // number of static patches in this map
-      tmp_0xbf_0x18 = tmp_0xbf_0x18.concat([0x00, 0x00, 0x00, 0x00]); // number of map patches in this map
-      tmp_0xbf_0x18 = tmp_0xbf_0x18.concat([0x00, 0x00, 0x00, 0x00]); // number of static patches in this map
-      // endFor
-
+      let tmp_0xbf_0x18: Buffer = xBFx18();
       dump(tmp_0xbf_0x18, 'server (uncompressed) *');
-      response = compression.compress(Buffer.from(tmp_0xbf_0x18));
+      response = compression.compress(tmp_0xbf_0x18);
       dump(response, 'server (compressed) *');
       socket.write(response);
 
-      let tmp_0x6d: Array<number> = [0x6d]; // play midi music
-      tmp_0x6d = tmp_0x6d.concat([0x00, 0x09]); // musicID
+      let tmp_0x6d: Buffer = x6D([0x00, 0x09]);
       dump(tmp_0x6d, 'server (uncompressed) *');
-      response = compression.compress(Buffer.from(tmp_0x6d));
+      response = compression.compress(tmp_0x6d);
+      dump(response, 'server (compressed) *');
       socket.write(response);
 
-      let tmp_0xbf_0x08: Array<number> = [0xbf]; // general information packet
-      tmp_0xbf_0x08 = tmp_0xbf_0x08.concat([0x00, 0x06]); // length
-      tmp_0xbf_0x08 = tmp_0xbf_0x08.concat([0x00, 0x08]); // subcommand id (set cursor hue / set MAP)
-      // subcommand details
-      tmp_0xbf_0x08 = tmp_0xbf_0x08.concat([0x00]); // hue (0 = Felucca, unhued / BRITANNIA map. 1 = Trammel, hued gold / BRITANNIA map, 2 = (switch to) ILSHENAR map)
-
+      let tmp_0xbf_0x08: Buffer = xBFx08();
       dump(tmp_0xbf_0x08, 'server (uncompressed) *');
-      response = compression.compress(Buffer.from(tmp_0xbf_0x08));
+      response = compression.compress(tmp_0xbf_0x08);
       dump(response, 'server (compressed) *');
       socket.write(response);
 
-      let tmp_0x78: Array<number> = [0x78]; // draw object
-      tmp_0x78 = tmp_0x78.concat([0x00, 0x71]); // length
-      tmp_0x78 = tmp_0x78.concat([0x00, 0x00, 0x1f, 0xc4]); // object serial
-      tmp_0x78 = tmp_0x78.concat([0x01, 0x90]); // graphic ID
-      tmp_0x78 = tmp_0x78.concat([0x05, 0xd8]); // X
-      tmp_0x78 = tmp_0x78.concat([0x06, 0x5c]); // Y
-      tmp_0x78 = tmp_0x78.concat([0x0a]); // Z
-      tmp_0x78 = tmp_0x78.concat([0x03]); // direction/facing
-      tmp_0x78 = tmp_0x78.concat([0x83, 0xea]); // color
-      /*
-      0x00: Normal
-      0x01: Unknown
-      0x02: Can Alter Paperdoll
-      0x04: Poisoned
-      0x08: Golden Health
-      0x10: Unknown
-      0x20: Unknown
-      0x40: War Mode
-
-      0x12 Status Flag was a guild mates mount not in war mode. 
-      0x52 is for the same pets status flag while in war mode. 
-      Poisoned it stayed the same appropriately in each. 0x12 and 0x52
-      */
-      tmp_0x78 = tmp_0x78.concat([0x00]); // status flag (bitwise flag)
-      /*
-      0x1: Innocent (Blue)
-      0x2: Friend (Green)
-      0x3: Grey (Grey - Animal)
-      0x4: Criminal (Grey)
-      0x5: Enemy (Orange)
-      0x6: Murderer (Red)
-      0x7: Invulnerable (Yellow)
-      */
-      tmp_0x78 = tmp_0x78.concat([0x01]); // notoriety
-      // loop if next block is not [0x00, 0x00, 0x00, 0x00]
-      tmp_0x78 = tmp_0x78.concat([0x40, 0x00, 0x1f, 0xc3, 0x0e, 0x75, 0x15, 0x00, 0x00]); // BYTE[4] Serial
-      tmp_0x78 = tmp_0x78.concat([0x40, 0x00, 0x1f, 0xc1, 0x20, 0x3b, 0x0b, 0x04, 0x4e]); // BYTE[2] Graphic
-      tmp_0x78 = tmp_0x78.concat([0x40, 0x00, 0x1f, 0xbd, 0x0a, 0x28, 0x02, 0x00, 0x00]); // BYTE[1] Layer
-      tmp_0x78 = tmp_0x78.concat([0x40, 0x00, 0x1f, 0xbb, 0x15, 0x17, 0x05, 0x01, 0xf5]); // BYTE[2] Color (this byte only needed if (Graphic&0x8000)
-      tmp_0x78 = tmp_0x78.concat([0x40, 0x00, 0x1f, 0xba, 0x15, 0x2e, 0x04, 0x01, 0xd9]); //
-      tmp_0x78 = tmp_0x78.concat([0x40, 0x00, 0x1f, 0xb9, 0x17, 0x0f, 0x03, 0x00, 0x00]); //
-      tmp_0x78 = tmp_0x78.concat([0x40, 0x00, 0x1f, 0xb8, 0x0e, 0xfa, 0x01, 0x00, 0x00]); //
-      tmp_0x78 = tmp_0x78.concat([0x40, 0x00, 0x1f, 0xb4, 0x17, 0x18, 0x06, 0x00, 0x00]); //
-      tmp_0x78 = tmp_0x78.concat([0x40, 0x00, 0x1f, 0xb3, 0x1f, 0x03, 0x16, 0x05, 0x2f]); //
-      tmp_0x78 = tmp_0x78.concat([0x40, 0x00, 0x1f, 0xb2, 0x13, 0xc6, 0x07, 0x00, 0x00]); //
-      // endLoop
-      tmp_0x78 = tmp_0x78.concat([0x00, 0x00, 0x00, 0x00]); // BYTE[4] 0x00000000
-
+      let tmp_0x78: Buffer = x78();
       dump(tmp_0x78, 'server (uncompressed) *');
-      response = compression.compress(Buffer.from(tmp_0x78));
+      response = compression.compress(tmp_0x78);
       dump(response, 'server (compressed) *');
       socket.write(response);
 
-      let tmp_0x17: Array<number> = [0x17]; // health bar status update (KR)
-      tmp_0x17 = tmp_0x17.concat([0x00, 0x0c]); // length
-      tmp_0x17 = tmp_0x17.concat([0x00, 0x00, 0x1f, 0xc4]); // mobile Serial
-      tmp_0x17 = tmp_0x17.concat([0x00, 0x01]); // 0x0001
-      tmp_0x17 = tmp_0x17.concat([0x00, 0x01]); // Status Color (0x01 = Green, 0x02 = Yellow, 0x03 = Red)
-      tmp_0x17 = tmp_0x17.concat([0x01]); // Flag (0x00 = Remove Status Color, 0x01 = Enable Status Color)
-
+      let tmp_0x17: Buffer = x17();
       dump(tmp_0x17, 'server (uncompressed) *');
-      response = compression.compress(Buffer.from(tmp_0x17));
+      response = compression.compress(tmp_0x17);
       dump(response, 'server (compressed) *');
       socket.write(response);
 
-      let tmp_0x20: Array<number> = [0x20]; // draw game player
-      tmp_0x20 = tmp_0x20.concat([0x00, 0x00, 0x1f, 0xc4]); // creature id
-      tmp_0x20 = tmp_0x20.concat([0x01, 0x90]); // bodyType
-      tmp_0x20 = tmp_0x20.concat([0x00]); // unknown1 (0)
-      tmp_0x20 = tmp_0x20.concat([0x83, 0xea]); // skin color / hue
-      tmp_0x20 = tmp_0x20.concat([0x00]); // flag byte
-      tmp_0x20 = tmp_0x20.concat([0x05, 0xd8]); // xLoc
-      tmp_0x20 = tmp_0x20.concat([0x06, 0x5c]); // yLoc
-      tmp_0x20 = tmp_0x20.concat([0x00, 0x00]); // unknown2 (0)
-      tmp_0x20 = tmp_0x20.concat([0x03]); // direction
-      tmp_0x20 = tmp_0x20.concat([0x0a]); // zLoc
-
+      let tmp_0x20: Buffer = x20();
       dump(tmp_0x20, 'server (uncompressed) *');
-      response = compression.compress(Buffer.from(tmp_0x20));
+      response = compression.compress(tmp_0x20);
       dump(response, 'server (compressed) *');
       socket.write(response);
 
-      let tmp_0x4f: Array<number> = [0x4f]; // overall light level
-      /*
-      0x00 - day
-      0x09 - OSI night
-      0x1F - Black
-      Max normal val = 0x1F
-      */
-      tmp_0x4f = tmp_0x4f.concat([0x1a]); // level
+      let tmp_0x4f: Buffer = x4F(0x1a);
       dump(tmp_0x4f, 'server (uncompressed) *');
-      response = compression.compress(Buffer.from(tmp_0x4f));
+      response = compression.compress(tmp_0x4f);
       dump(response, 'server (compressed) *');
       socket.write(response);
 
-      let tmp_0x11: Array<number> = [0x11]; // status bar info
-      tmp_0x11 = tmp_0x11.concat([0x00, 0x70]); // length
-      tmp_0x11 = tmp_0x11.concat([0x00, 0x00, 0x1f, 0xc4]); // player serial
-      tmp_0x11 = tmp_0x11.concat(Buffer.from(character.charName).toJSON().data); // player name
-      tmp_0x11 = tmp_0x11.concat([0x00, 0x19]); // Current Hit Points (see notes)
-      tmp_0x11 = tmp_0x11.concat([0x00, 0x19]); // Max Hit Points (see notes)
-      /*
-      1: Allowed to Change In StatusBar (like with pets)
-      0: Not allowed
-      */
-      tmp_0x11 = tmp_0x11.concat([0x00]); // Name Change Flag
-      /*
-      0x00: no more data following (end of packet here).
-      0x01: T2A Extended Info
-      0x03: UOR Extended Info
-      0x04: AOS Extended Info (4.0+)
-      0x05: UOML Extended Info (5.0+)
-      0x06: UOKR Extended Info (UOKR+)
-      */
-      tmp_0x11 = tmp_0x11.concat([0x06]); // Status Flag
-      /*
-      0: Male Human
-      1: Female Human
-      2: Male Elf
-      3: Female Elf
-
-      1: Human
-      2: Elf
-      3: Gargoyle
-      */
-      tmp_0x11 = tmp_0x11.concat([0x00]); // Sex+Race
-      tmp_0x11 = tmp_0x11.concat([0x00, 0x19]); // Strength
-      tmp_0x11 = tmp_0x11.concat([0x00, 0x14]); // Dexterity
-      tmp_0x11 = tmp_0x11.concat([0x00, 0x2d]); // Intelligence
-      tmp_0x11 = tmp_0x11.concat([0x00, 0x14]); // Current Stamina
-      tmp_0x11 = tmp_0x11.concat([0x00, 0x14]); // Max Stamina
-      tmp_0x11 = tmp_0x11.concat([0x00, 0x2d]); // Current Mana
-      tmp_0x11 = tmp_0x11.concat([0x00, 0x2d]); // Max Mana
-      tmp_0x11 = tmp_0x11.concat([0x00, 0x00, 0x03, 0xe8]); // Gold In Pack
-      tmp_0x11 = tmp_0x11.concat([0x00, 0x06]); // Armor Rating (see notes)
-      tmp_0x11 = tmp_0x11.concat([0x00, 0x3d]); // Weight
-
-      tmp_0x11 = tmp_0x11.concat([0x00, 0x7f]); // Hit Chance Increase
-      tmp_0x11 = tmp_0x11.concat([0x01, 0x01]); // Swing Speed Increase
-      tmp_0x11 = tmp_0x11.concat([0x2c, 0x00]); // Damage Chance Increase
-      tmp_0x11 = tmp_0x11.concat([0x05, 0x00]); // Lower Reagent Cost
-      tmp_0x11 = tmp_0x11.concat([0x00, 0x00]); // Hit Points Regeneration
-      tmp_0x11 = tmp_0x11.concat([0x00, 0x00]); // Stamina Regeneration
-      tmp_0x11 = tmp_0x11.concat([0x00, 0x00]); // Mana Regeneration
-      tmp_0x11 = tmp_0x11.concat([0x00, 0x00]); // Reflect Physical Damage
-      tmp_0x11 = tmp_0x11.concat([0x00, 0x00]); // Enhance Potions
-      tmp_0x11 = tmp_0x11.concat([0x01, 0x00]); // Defense Chance Increase
-      tmp_0x11 = tmp_0x11.concat([0x04, 0x00]); // Spell Damage Increase
-      tmp_0x11 = tmp_0x11.concat([0x00, 0x00]); // Faster Cast Recovery
-      tmp_0x11 = tmp_0x11.concat([0x00, 0x00]); // Faster Casting
-      tmp_0x11 = tmp_0x11.concat([0x46, 0x00]); // Lower Mana Cost
-      tmp_0x11 = tmp_0x11.concat([0x46, 0x00]); // Strength Increase
-      tmp_0x11 = tmp_0x11.concat([0x46, 0x00]); // Dexterity Increase
-      tmp_0x11 = tmp_0x11.concat([0x46, 0x00]); // Intelligence Increase
-      tmp_0x11 = tmp_0x11.concat([0x46, 0x00]); // Hit Points Increase
-      tmp_0x11 = tmp_0x11.concat([0x00, 0x00]); // Stamina Increase
-      tmp_0x11 = tmp_0x11.concat([0x2d, 0x00]); // Mana Increase
-      tmp_0x11 = tmp_0x11.concat([0x00, 0x00]); // Maximum Hit Points Increase
-      tmp_0x11 = tmp_0x11.concat([0x00, 0x00]); // Maximum Stamina Increase
-      tmp_0x11 = tmp_0x11.concat([0x00, 0x00]); // Maximum Mana Increase
-
+      let tmp_0x11: Buffer = x11(character);
       dump(tmp_0x11, 'server (uncompressed) *');
-      response = compression.compress(Buffer.from(tmp_0x11));
+      response = compression.compress(tmp_0x11);
       dump(response, 'server (compressed) *');
       socket.write(response);
 
-      let tmp_0xbf_0x19: Array<number> = [0xbf]; // general information packet
-      tmp_0xbf_0x19 = tmp_0xbf_0x19.concat([0x00, 0x06]); // length
-      tmp_0xbf_0x19 = tmp_0xbf_0x19.concat([0x00, 0x19]); // subcommand id (extended stats)
-      // subcommand details
-      tmp_0xbf_0x19 = tmp_0xbf_0x19.concat([0x02]); // subsubcommand (0x2 for 2D client, 0x5 for KR client)
-      tmp_0xbf_0x19 = tmp_0xbf_0x19.concat([0x00, 0x00, 0x1f, 0xc4]); // serial
-      tmp_0xbf_0x19 = tmp_0xbf_0x19.concat([0x00]); // unknown (always 0)
-      tmp_0xbf_0x19 = tmp_0xbf_0x19.concat([0x00]); // Lock flags (0 = up, 1 = down, 2 = locked, FF = update mobile status animation ( KR only )
-
+      let tmp_0xbf_0x19: Buffer = xBFx19();
       dump(tmp_0xbf_0x19, 'server (uncompressed) *');
-      response = compression.compress(Buffer.from(tmp_0xbf_0x19));
+      response = compression.compress(tmp_0xbf_0x19);
       dump(response, 'server (compressed) *');
       socket.write(response);
 
-      let tmp_0x72: Array<number> = [0x72]; // request war mode
-      /*
-      0x00 - Normal
-      0x01 - Fighting
-      */
-      tmp_0x72 = tmp_0x72.concat([0x00]); // flag
-      tmp_0x72 = tmp_0x72.concat([0x00, 0x32, 0x00]); // unknown1 (always 00 32 00 in testing)
-
+      let tmp_0x72: Buffer = x72(0x00);
       dump(tmp_0x72, 'server (uncompressed) *');
-      response = compression.compress(Buffer.from(tmp_0x72));
+      response = compression.compress(tmp_0x72);
       dump(response, 'server (compressed) *');
       socket.write(response);
 
-      let tmp_0x55: Array<number> = [0x55]; // login complete
+      let tmp_0x55: Buffer = x55();
       dump(tmp_0x55, 'server (uncompressed) *');
-      response = compression.compress(Buffer.from(tmp_0x55));
+      response = compression.compress(tmp_0x55);
     } else if (cmd === 0x00) {
       // ?
     }

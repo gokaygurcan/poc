@@ -9,6 +9,7 @@ flow-typed/
 [lints]
 all=warn
 nonstrict-import=error
+sketchy-null-string=false
 
 [options]
 log.file=flow.log

@@ -1,6 +1,6 @@
 {
   "name": "poc",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "This is a proof of concept for an Ultima Online server written in Node.js",
   "private": true,
   "homepage": "https://github.com/gokaygurcan",
@@ -20,14 +20,14 @@
   "repository": "gokaygurcan/poc",
   "scripts": {
     "postinstall": "flow-typed install",
-    "start": "node -r @babel/register --inspect index.js",
-    "test": "node -r @babel/register test.js",
+    "start": "node --zero-fill-buffers -r @babel/register --inspect index.js",
+    "test": "node --zero-fill-buffers -r @babel/register test.js",
     "dev": "nodemon",
     "razor": "cross-env RAZOR=true nodemon",
     "flow": "flow focus-check --pretty"
   },
   "dependencies": {
-    "hexy": "^0.2.11",
+    "hexy": "^0.3.0",
     "semver": "^5.6.0",
     "uuid": "^3.3.2"
   },
@@ -47,7 +47,7 @@
     "@babel/preset-flow": "^7.0.0",
     "@babel/register": "^7.0.0",
     "cross-env": "^5.2.0",
-    "flow-bin": "^0.86.0",
+    "flow-bin": "^0.91.0",
     "flow-typed": "^2.5.1",
     "nodemon": "^1.18.6"
   },
