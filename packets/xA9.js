@@ -100,13 +100,5 @@ export const xA9 = (config: tConfig, socket: tSocket, user: tUser): Buffer => {
 
   tmp_0xa9 = tmp_0xa9.concat([0xff, 0xff]); // if SA Enchanced client, last character slot (for highlight)
 
-
-  console.log('----------------------------');
-  console.log(tmp_0xa9);
-  console.log('----------------------------');
-
-
-
-
   return Buffer.from(tmp_0xa9);
 };

@@ -55,10 +55,8 @@ const dump = (data: Buffer | Array<number | string>, sender: string): void => {
   console.log(hexy(data, { width: 32, numbering: 'none', format: 'twos' }));
 };
 
-const decrypt = (data: Buffer, socket: tSocket): Buffer => {
-  const keys: tClientKeys = calculateKeys(socket.version);
-
-  const EncryptionSeed: number = socket.seed;
+const decrypt = (data: Buffer, keys: tClientKeys, seed: number): Buffer => {
+  const EncryptionSeed: number = seed;
   const FirstClientKey: number = keys.key1;
   const SecondClientKey: number = keys.key2;
 
@@ -268,7 +266,7 @@ server.on('connection', (socket: tSocket): void => {
       }
     } else {
       if (razor === false) {
-        data = decrypt(data, socket);
+        data = decrypt(data, socket.version, socket.seed);
         dump(data, 'client *');
 
         // decrypted cmd
